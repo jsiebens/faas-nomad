@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/jsiebens/faas-nomad/pkg/handlers"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	fbootstrap "github.com/openfaas/faas-provider"
 	ftypes "github.com/openfaas/faas-provider/types"
@@ -26,9 +27,9 @@ func main() {
 		SecretHandler:        unimplemented,
 		LogHandler:           unimplemented,
 		UpdateHandler:        unimplemented,
-		HealthHandler:        unimplemented,
-		InfoHandler:          unimplemented,
-		ListNamespaceHandler: unimplemented,
+		HealthHandler:        handlers.MakeHealthHandler(),
+		InfoHandler:          handlers.MakeInfoHandler(),
+		ListNamespaceHandler: handlers.MakeListNamespaceHandler(),
 	}
 
 	log.Printf("Listening on TCP port: %d\n", *config.TCPPort)
