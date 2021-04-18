@@ -14,10 +14,6 @@ const (
 
 func MakeInfoHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Body != nil {
-			defer r.Body.Close()
-		}
-
 		providerInfo := types.ProviderInfo{
 			Orchestration: OrchestrationIdentifier,
 			Name:          ProviderName,
