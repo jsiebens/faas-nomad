@@ -18,7 +18,7 @@ type Secrets interface {
 	Delete(key string) error
 }
 
-func NewVault(config types.VaultConfig) (Secrets, error) {
+func NewVaultSecrets(config types.VaultConfig) (Secrets, error) {
 
 	clientConfig := api.DefaultConfig()
 	clientConfig.Address = config.Addr

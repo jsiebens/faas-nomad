@@ -18,21 +18,26 @@ func main() {
 		log.Fatal(err)
 	}
 
-	vault, err := services.NewVault(config.Vault)
+	secrets, err := services.NewVaultSecrets(config.Vault)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jobs, err := services.NewNomadJobs(config.Nomad)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	bootstrapHandlers := ftypes.FaaSHandlers{
 		FunctionProxy:        unimplemented,
-		FunctionReader:       unimplemented,
-		DeployHandler:        unimplemented,
-		DeleteHandler:        unimplemented,
+		FunctionReader:       handlers.MakeFunctionReader(config, jobs),
+		DeployHandler:        handlers.MakeDeployHandler(config, jobs),
+		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs),
 		ReplicaReader:        unimplemented,
 		ReplicaUpdater:       unimplemented,
-		SecretHandler:        handlers.MakeSecretHandler(vault),
+		SecretHandler:        handlers.MakeSecretHandler(secrets),
 		LogHandler:           unimplemented,
-		UpdateHandler:        unimplemented,
+		UpdateHandler:        handlers.MakeDeployHandler(config, jobs),
 		HealthHandler:        handlers.MakeHealthHandler(),
 		InfoHandler:          handlers.MakeInfoHandler(),
 		ListNamespaceHandler: handlers.MakeListNamespaceHandler(),

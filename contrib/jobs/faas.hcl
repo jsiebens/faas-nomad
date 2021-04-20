@@ -79,7 +79,6 @@ job "faas" {
         faas_nats_port="4222"
         secret_mount_path="/secrets"
         scale_from_zero="true"
-        function_namespace="openfaas-fn"
       }
       resources {
         cpu    = 50
