@@ -10,6 +10,7 @@ type Jobs interface {
 	Info(jobID string, q *api.QueryOptions) (*api.Job, *api.QueryMeta, error)
 	Register(*api.Job, *api.WriteOptions) (*api.JobRegisterResponse, *api.WriteMeta, error)
 	Deregister(jobID string, purge bool, q *api.WriteOptions) (string, *api.WriteMeta, error)
+	Allocations(jobID string, allAllocs bool, q *api.QueryOptions) ([]*api.AllocationListStub, *api.QueryMeta, error)
 }
 
 func NewNomadJobs(config types.NomadConfig) (Jobs, error) {
