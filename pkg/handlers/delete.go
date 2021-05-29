@@ -12,7 +12,7 @@ import (
 	ftypes "github.com/openfaas/faas-provider/types"
 )
 
-func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs) func(w http.ResponseWriter, r *http.Request) {
+func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs, resolver services.ServiceResolver) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -31,6 +31,8 @@ func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs) func(w 
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		resolver.RemoveCacheItem(jobName)
 
 		w.WriteHeader(http.StatusOK)
 	}

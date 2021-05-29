@@ -1,6 +1,8 @@
 package services
 
 import (
+	"net/url"
+
 	"github.com/hashicorp/nomad/api"
 	ftypes "github.com/openfaas/faas-provider/types"
 	"github.com/stretchr/testify/mock"
@@ -90,4 +92,39 @@ func (m *MockJobs) Deregister(jobID string, purge bool, q *api.WriteOptions) (st
 	args := m.Called(jobID, purge, q)
 
 	return "", nil, args.Error(2)
+}
+
+func (m *MockJobs) Allocations(jobID string, allAllocs bool, q *api.QueryOptions) ([]*api.AllocationListStub, *api.QueryMeta, error) {
+	args := m.Called(jobID, allAllocs, q)
+
+	var allocs []*api.AllocationListStub
+	if a := args.Get(0); a != nil {
+		allocs = a.([]*api.AllocationListStub)
+	}
+
+	var meta *api.QueryMeta
+	if r := args.Get(1); r != nil {
+		meta = r.(*api.QueryMeta)
+	}
+
+	return allocs, meta, args.Error(2)
+}
+
+type MockResolver struct {
+	mock.Mock
+}
+
+func (mr *MockResolver) Resolve(functionName string) (url.URL, error) {
+	args := mr.Called(functionName)
+
+	var resp url.URL
+	if r := args.Get(0); r != nil {
+		resp = r.(url.URL)
+	}
+
+	return resp, args.Error(2)
+}
+
+func (mr *MockResolver) RemoveCacheItem(functionName string) {
+	mr.Called(functionName)
 }

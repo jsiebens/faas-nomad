@@ -8,6 +8,7 @@ import (
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	fbootstrap "github.com/openfaas/faas-provider"
+	"github.com/openfaas/faas-provider/proxy"
 	ftypes "github.com/openfaas/faas-provider/types"
 )
 
@@ -28,11 +29,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	resolver, err := services.NewConsulResolver(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	bootstrapHandlers := ftypes.FaaSHandlers{
-		FunctionProxy:        unimplemented,
+		FunctionProxy:        proxy.NewHandlerFunc(config.FaaS, resolver),
 		FunctionReader:       handlers.MakeFunctionReader(config, jobs),
 		DeployHandler:        handlers.MakeDeployHandler(config, jobs),
-		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs),
+		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs, resolver),
 		ReplicaReader:        handlers.MakeReplicaReader(config, jobs),
 		ReplicaUpdater:       handlers.MakeReplicaUpdater(config, jobs),
 		SecretHandler:        handlers.MakeSecretHandler(secrets),

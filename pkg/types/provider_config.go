@@ -18,6 +18,7 @@ type ProviderConfig struct {
 	FaaS ftypes.FaaSConfig
 
 	Vault      VaultConfig
+	Consul     ConsulConfig
 	Nomad      NomadConfig
 	Scheduling SchedulingConfig
 }
@@ -47,6 +48,10 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 			Policy:           ftypes.ParseString(env.Getenv("vault_policy"), "openfaas"),
 		},
 
+		Consul: ConsulConfig{
+			Addr: ftypes.ParseString(env.Getenv("consul_addr"), "http://localhost:8500"),
+		},
+		
 		Nomad: NomadConfig{
 			Addr: ftypes.ParseString(env.Getenv("nomad_addr"), "http://localhost:4646"),
 		},
