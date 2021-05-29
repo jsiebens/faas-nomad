@@ -18,6 +18,12 @@ func createFunctionStatus(job *api.Job, jobPrefix string) types.FunctionStatus {
 	if job.TaskGroups[0].Tasks[0].Config["labels"] != nil {
 		labels = parseLabels(job.TaskGroups[0].Tasks[0].Config["labels"].([]interface{}))
 	}
+
+	var annotations = map[string]string{}
+	if job.Meta != nil {
+		annotations = job.Meta
+	}
+
 	return types.FunctionStatus{
 		Name:            sanitiseJobName(job, jobPrefix),
 		Namespace:       *job.Namespace,
@@ -25,7 +31,7 @@ func createFunctionStatus(job *api.Job, jobPrefix string) types.FunctionStatus {
 		Replicas:        uint64(*job.TaskGroups[0].Count),
 		InvocationCount: 0,
 		Labels:          &labels,
-		Annotations:     &job.Meta,
+		Annotations:     &annotations,
 	}
 }
 
