@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/nomad/api"
 	"github.com/jsiebens/faas-nomad/pkg/services"
@@ -18,6 +19,7 @@ import (
 )
 
 func createMockJob(id string, status string) *api.Job {
+	now := int64(time.Now().Nanosecond())
 	name := "faas-fn-JOB123"
 	namespace := "default"
 	count := 1
@@ -30,6 +32,7 @@ func createMockJob(id string, status string) *api.Job {
 		Namespace: &namespace,
 		Status:    &status,
 		Meta:      annotations,
+		SubmitTime: &now,
 		TaskGroups: []*api.TaskGroup{{
 			Count: &count,
 			Tasks: []*api.Task{{

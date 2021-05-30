@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"strings"
+	"time"
 
 	"github.com/hashicorp/nomad/api"
 	"github.com/openfaas/faas-provider/types"
@@ -35,8 +36,8 @@ func createFunctionStatus(job *api.Job, jobPrefix string) types.FunctionStatus {
 		InvocationCount: 0,
 		Labels:          &labels,
 		Annotations:     &annotations,
-		EnvVars:         task.Env,
 		EnvProcess:      getEnvProcess(task.Env),
+		CreatedAt:       time.Unix(0, *job.SubmitTime),
 	}
 }
 
