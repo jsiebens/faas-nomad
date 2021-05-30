@@ -182,7 +182,7 @@ func createEnvVars(r ftypes.FunctionDeployment) map[string]string {
 	}
 
 	if r.EnvProcess != "" {
-		envVars["fprocess"] = r.EnvProcess
+		envVars[EnvProcessName] = r.EnvProcess
 	}
 
 	return envVars

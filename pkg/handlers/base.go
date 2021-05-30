@@ -8,15 +8,18 @@ import (
 )
 
 const (
-	HeaderContentType = "Content-Type"
-
+	HeaderContentType   = "Content-Type"
 	TypeApplicationJson = "application/json"
+
+	EnvProcessName = "fprocess"
 )
 
 func createFunctionStatus(job *api.Job, jobPrefix string) types.FunctionStatus {
 	var labels = map[string]string{}
-	if job.TaskGroups[0].Tasks[0].Config["labels"] != nil {
-		labels = parseLabels(job.TaskGroups[0].Tasks[0].Config["labels"].([]interface{}))
+	task := job.TaskGroups[0].Tasks[0]
+
+	if task.Config["labels"] != nil {
+		labels = parseLabels(task.Config["labels"].([]interface{}))
 	}
 
 	var annotations = map[string]string{}
@@ -27,12 +30,25 @@ func createFunctionStatus(job *api.Job, jobPrefix string) types.FunctionStatus {
 	return types.FunctionStatus{
 		Name:            sanitiseJobName(job, jobPrefix),
 		Namespace:       *job.Namespace,
-		Image:           job.TaskGroups[0].Tasks[0].Config["image"].(string),
+		Image:           task.Config["image"].(string),
 		Replicas:        uint64(*job.TaskGroups[0].Count),
 		InvocationCount: 0,
 		Labels:          &labels,
 		Annotations:     &annotations,
+		EnvVars:         task.Env,
+		EnvProcess:      getEnvProcess(task.Env),
 	}
+}
+
+func getEnvProcess(m map[string]string) string {
+	if m == nil {
+		return ""
+	}
+	s := m[EnvProcessName]
+	if len(s) != 0 {
+		return s
+	}
+	return ""
 }
 
 func parseLabels(labels []interface{}) map[string]string {
