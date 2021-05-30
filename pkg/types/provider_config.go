@@ -59,7 +59,7 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 		Scheduling: SchedulingConfig{
 			Region:         ftypes.ParseString(env.Getenv("job_region"), "global"),
 			Datacenters:    strings.Split(ftypes.ParseString(env.Getenv("job_datacenters"), "dc1"), ","),
-			Namespace:      ftypes.ParseString(env.Getenv("job_namespace"), "default"),
+			Namespace:      ftypes.ParseString(env.Getenv("job_namespace"), "openfaas-fn"),
 			JobPrefix:      ftypes.ParseString(env.Getenv("job_name_prefix"), "faas-fn-"),
 			NetworkingMode: ftypes.ParseString(env.Getenv("job_network_mode"), "host"),
 		},

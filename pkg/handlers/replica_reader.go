@@ -17,7 +17,11 @@ func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs) http.
 		vars := mux.Vars(r)
 		functionName := vars["name"]
 
-		job, _, err := client.Info(fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, functionName), nil)
+		options := &api.QueryOptions{
+			Namespace: config.Scheduling.Namespace,
+		}
+
+		job, _, err := client.Info(fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, functionName), options)
 
 		if job == nil || err != nil {
 			w.WriteHeader(http.StatusNotFound)
@@ -25,7 +29,7 @@ func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs) http.
 		}
 
 		// get the number of available allocations from the job
-		readyCount, err := getAllocationReadyCount(client, job, r)
+		readyCount, err := getAllocationReadyCount(client, job, options)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -42,8 +46,8 @@ func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs) http.
 
 }
 
-func getAllocationReadyCount(client services.Jobs, job *api.Job, r *http.Request) (uint64, error) {
-	allocations, _, err := client.Allocations(*job.ID, true, nil)
+func getAllocationReadyCount(client services.Jobs, job *api.Job, q *api.QueryOptions) (uint64, error) {
+	allocations, _, err := client.Allocations(*job.ID, true, q)
 	var readyCount uint64
 
 	for _, a := range allocations {

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/hashicorp/nomad/api"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	ftypes "github.com/openfaas/faas-provider/types"
@@ -22,7 +23,11 @@ func MakeReplicaUpdater(config *types.ProviderConfig, client services.Jobs) func
 			return
 		}
 
-		job, _, err := client.Info(fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, req.ServiceName), nil)
+		options := &api.QueryOptions{
+			Namespace: config.Scheduling.Namespace,
+		}
+
+		job, _, err := client.Info(fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, req.ServiceName), options)
 
 		if job == nil || err != nil {
 			w.WriteHeader(http.StatusNotFound)
