@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul-template/dependency"
@@ -21,6 +22,7 @@ type consulResolver struct {
 	watcher   *watch.Watcher
 	cache     *cache.Cache
 	prefix    string
+	namespace string
 }
 
 type cacheItem struct {
@@ -54,6 +56,7 @@ func NewConsulResolver(config *types.ProviderConfig) (ServiceResolver, error) {
 		watcher:   watcher,
 		cache:     pc,
 		prefix:    config.Scheduling.JobPrefix,
+		namespace: config.Scheduling.Namespace,
 	}
 
 	go resolver.watch()
@@ -62,7 +65,7 @@ func NewConsulResolver(config *types.ProviderConfig) (ServiceResolver, error) {
 }
 
 func (sr *consulResolver) Resolve(functionName string) (url.URL, error) {
-	return sr.resolveInternal(fmt.Sprintf("%s%s", sr.prefix, functionName))
+	return sr.resolveInternal(fmt.Sprintf("%s%s", sr.prefix, strings.TrimSuffix(functionName, "."+sr.namespace)))
 }
 
 func (sr *consulResolver) resolveInternal(function string) (url.URL, error) {
