@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/nomad/api"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	ftypes "github.com/openfaas/faas-provider/types"
@@ -61,4 +62,35 @@ func TestDeployHandlerReportsOKWhenJobIsRegistered(t *testing.T) {
 	deployHandler(recorder, request)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	args := jobs.Calls[0].Arguments
+	job := args.Get(0).(*api.Job)
+	count := job.TaskGroups[0].Count
+
+	assert.Equal(t, 1, *count)
+}
+
+func TestDeployHandlerWithInitialScaleCount(t *testing.T) {
+	labels := map[string]string{
+		"com.openfaas.scale.min": "3",
+	}
+
+	req := ftypes.FunctionDeployment{}
+	req.Service = "Func123"
+	req.Labels = &labels
+	body, _ := json.Marshal(req)
+
+	jobs, deployHandler, request, recorder := setupDeployHandler(body)
+
+	jobs.On("Register", mock.Anything, mock.Anything).Return(nil, nil, nil)
+
+	deployHandler(recorder, request)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	args := jobs.Calls[0].Arguments
+	job := args.Get(0).(*api.Job)
+	count := job.TaskGroups[0].Count
+
+	assert.Equal(t, 3, *count)
 }

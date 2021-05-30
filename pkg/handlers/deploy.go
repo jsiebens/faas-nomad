@@ -69,6 +69,7 @@ func createJob(config *types.ProviderConfig, namespace string, fd ftypes.Functio
 }
 
 func createTaskGroups(config *types.ProviderConfig, fd ftypes.FunctionDeployment) []*api.TaskGroup {
+	count := getInitialCount(fd)
 
 	network := api.NetworkResource{
 		Mode:         config.Scheduling.NetworkingMode,
@@ -77,11 +78,23 @@ func createTaskGroups(config *types.ProviderConfig, fd ftypes.FunctionDeployment
 
 	group := api.TaskGroup{
 		Name:     &fd.Service,
+		Count:    &count,
 		Networks: []*api.NetworkResource{&network},
 		Tasks:    []*api.Task{createTask(config, fd)},
 	}
 
 	return []*api.TaskGroup{&group}
+}
+
+func getInitialCount(fd ftypes.FunctionDeployment) int {
+	if fd.Labels != nil {
+		m := *fd.Labels
+		count, err := strconv.ParseInt(m["com.openfaas.scale.min"], 10, 32)
+		if err == nil {
+			return int(count)
+		}
+	}
+	return 1
 }
 
 func createTask(config *types.ProviderConfig, fd ftypes.FunctionDeployment) *api.Task {
