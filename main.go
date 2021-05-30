@@ -46,7 +46,7 @@ func main() {
 		UpdateHandler:        handlers.MakeDeployHandler(config, jobs),
 		HealthHandler:        handlers.MakeHealthHandler(),
 		InfoHandler:          handlers.MakeInfoHandler(),
-		ListNamespaceHandler: handlers.MakeListNamespaceHandler(),
+		ListNamespaceHandler: handlers.MakeListNamespaceHandler(config),
 	}
 
 	log.Printf("Listening on TCP port: %d\n", *config.FaaS.TCPPort)

@@ -3,11 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/jsiebens/faas-nomad/pkg/types"
 )
 
-func MakeListNamespaceHandler() func(w http.ResponseWriter, r *http.Request) {
+func MakeListNamespaceHandler(config *types.ProviderConfig) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		jsonOut, marshalErr := json.Marshal([]string{})
+		jsonOut, marshalErr := json.Marshal([]string{config.Scheduling.Namespace})
 		if marshalErr != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
