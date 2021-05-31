@@ -12,6 +12,7 @@ type SchedulingConfig struct {
 	Namespace      string
 	JobPrefix      string
 	NetworkingMode string
+	Purge          bool
 }
 
 type ProviderConfig struct {
@@ -51,7 +52,7 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 		Consul: ConsulConfig{
 			Addr: ftypes.ParseString(env.Getenv("consul_addr"), "http://localhost:8500"),
 		},
-		
+
 		Nomad: NomadConfig{
 			Addr: ftypes.ParseString(env.Getenv("nomad_addr"), "http://localhost:4646"),
 		},
@@ -62,6 +63,7 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 			Namespace:      ftypes.ParseString(env.Getenv("job_namespace"), "openfaas-fn"),
 			JobPrefix:      ftypes.ParseString(env.Getenv("job_name_prefix"), "faas-fn-"),
 			NetworkingMode: ftypes.ParseString(env.Getenv("job_network_mode"), "host"),
+			Purge:          ftypes.ParseBoolValue(env.Getenv("job_purge"), false),
 		},
 	}
 

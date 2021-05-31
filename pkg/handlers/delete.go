@@ -26,7 +26,7 @@ func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs, resolve
 
 		jobName := fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, req.FunctionName)
 
-		_, _, err = jobs.Deregister(jobName, false, &api.WriteOptions{Namespace: config.Scheduling.Namespace})
+		_, _, err = jobs.Deregister(jobName, config.Scheduling.Purge, &api.WriteOptions{Namespace: config.Scheduling.Namespace})
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
