@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/api"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
@@ -25,7 +26,9 @@ var (
 	updateStagger         = 5 * time.Second
 )
 
-func MakeDeployHandler(config *types.ProviderConfig, jobs services.Jobs) func(w http.ResponseWriter, r *http.Request) {
+func MakeDeployHandler(config *types.ProviderConfig, jobs services.Jobs, logger hclog.Logger) func(w http.ResponseWriter, r *http.Request) {
+	log := logger.Named("deploy_handler")
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, _ := ioutil.ReadAll(r.Body)
 
@@ -43,10 +46,12 @@ func MakeDeployHandler(config *types.ProviderConfig, jobs services.Jobs) func(w 
 		// Use the Nomad API client to register the job
 		_, _, err = jobs.Register(job, &api.WriteOptions{Namespace: namespace})
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, err)
+			log.Error("Error registering function", "function", *job.Name, "namespace", *job.Namespace, "error", err.Error())
 			return
 		}
 
+		log.Debug("Function registered successfully", "function", *job.Name, "namespace", *job.Namespace)
 		w.WriteHeader(http.StatusOK)
 	}
 }

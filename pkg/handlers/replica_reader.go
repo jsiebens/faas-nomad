@@ -6,19 +6,22 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/api"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 )
 
-func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs) http.HandlerFunc {
+func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs, logger hclog.Logger) http.HandlerFunc {
+	log := logger.Named("replica_reader")
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		functionName := vars["name"]
+		namespace := config.Scheduling.Namespace
 
 		options := &api.QueryOptions{
-			Namespace: config.Scheduling.Namespace,
+			Namespace: namespace,
 		}
 
 		job, _, err := client.Info(fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, functionName), options)
@@ -31,7 +34,8 @@ func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs) http.
 		// get the number of available allocations from the job
 		readyCount, err := getAllocationReadyCount(client, job, options)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, err)
+			log.Error("Error reading function status", "function", functionName, "namespace", namespace, "error", err.Error())
 			return
 		}
 
@@ -42,6 +46,8 @@ func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs) http.
 		w.Header().Set(HeaderContentType, TypeApplicationJson)
 		w.WriteHeader(http.StatusOK)
 		w.Write(statusBytes)
+
+		log.Trace("Function status read successfully", "function", functionName, "namespace", namespace)
 	}
 
 }

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/api"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
@@ -54,7 +55,7 @@ func setupFunctionReader() (*services.MockJobs, http.HandlerFunc, *http.Request,
 		JobPrefix: "faas-fn-",
 	}}
 
-	handler := MakeFunctionReader(config, jobs)
+	handler := MakeFunctionReader(config, jobs, hclog.Default())
 
 	return jobs, handler, request, response
 }

@@ -4,28 +4,35 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/api"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	ftypes "github.com/openfaas/faas-provider/types"
 )
 
-func MakeFunctionReader(config *types.ProviderConfig, jobs services.Jobs) func(w http.ResponseWriter, r *http.Request) {
+func MakeFunctionReader(config *types.ProviderConfig, jobs services.Jobs, logger hclog.Logger) func(w http.ResponseWriter, r *http.Request) {
+	log := logger.Named("function_reader")
+
 	return func(w http.ResponseWriter, r *http.Request) {
+		namespace := config.Scheduling.Namespace
+
 		options := &api.QueryOptions{
-			Namespace: config.Scheduling.Namespace,
+			Namespace: namespace,
 			Prefix:    config.Scheduling.JobPrefix,
 		}
 
 		list, _, err := jobs.List(options)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, err)
+			log.Error("Error listing functions", "namespace", namespace, "error", err.Error())
 			return
 		}
 
 		functions, err := getFunctions(config, jobs, list, options)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, err)
+			log.Error("Error listing functions", "namespace", namespace, "error", err.Error())
 			return
 		}
 
@@ -33,6 +40,8 @@ func MakeFunctionReader(config *types.ProviderConfig, jobs services.Jobs) func(w
 		w.Header().Set(HeaderContentType, TypeApplicationJson)
 		w.WriteHeader(http.StatusOK)
 		w.Write(functionBytes)
+
+		log.Trace("Functions listed successfully", "namespace", namespace)
 	}
 }
 
@@ -49,4 +58,10 @@ func getFunctions(config *types.ProviderConfig, client services.Jobs, jobs []*ap
 		}
 	}
 	return functions, nil
+}
+
+func writeError(w http.ResponseWriter, status int, err error) {
+	w.WriteHeader(status)
+	w.Write([]byte(err.Error()))
+	return
 }

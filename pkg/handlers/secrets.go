@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	ftypes "github.com/openfaas/faas-provider/types"
 )
@@ -14,7 +15,9 @@ type SecretsResponse struct {
 	Body       []byte
 }
 
-func MakeSecretHandler(secrets services.Secrets) http.HandlerFunc {
+func MakeSecretHandler(secrets services.Secrets, logger hclog.Logger) http.HandlerFunc {
+	log := logger.Named("secrets")
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, _ := ioutil.ReadAll(r.Body)
 
@@ -41,7 +44,8 @@ func MakeSecretHandler(secrets services.Secrets) http.HandlerFunc {
 		}
 
 		if err != nil {
-			w.WriteHeader(code)
+			writeError(w, code, err)
+			log.Error(err.Error())
 		} else {
 			w.WriteHeader(code)
 			w.Header().Set(HeaderContentType, TypeApplicationJson)

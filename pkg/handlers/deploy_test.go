@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/api"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
@@ -23,7 +24,7 @@ func setupDeployHandler(body []byte) (*services.MockJobs, http.HandlerFunc, *htt
 	request := httptest.NewRequest("POST", "/system/functions", bytes.NewReader(body))
 
 	config, _ := types.DefaultConfig()
-	handler := MakeDeployHandler(config, jobs)
+	handler := MakeDeployHandler(config, jobs, hclog.Default())
 
 	return jobs, handler, request, response
 }

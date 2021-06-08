@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	ftypes "github.com/openfaas/faas-provider/types"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func TestSecretsHandlerReportsAvailableSecrets(t *testing.T) {
 	secrets := &services.MockSecrets{}
 	secrets.On("List").Return(actualValues, nil)
 
-	handler := MakeSecretHandler(secrets)
+	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -52,7 +53,7 @@ func TestSecretsHandlerReportsErrorWhenListingSecrets(t *testing.T) {
 	secrets := &services.MockSecrets{}
 	secrets.On("List").Return(nil, fmt.Errorf("error reading secrets"))
 
-	handler := MakeSecretHandler(secrets)
+	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -65,7 +66,7 @@ func TestSecretsHandlerReportsCreatedWhenCreatingSecretSucceeds(t *testing.T) {
 	secrets := &services.MockSecrets{}
 	secrets.On("Set", "secret-a", "value-a").Return(nil)
 
-	handler := MakeSecretHandler(secrets)
+	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
 
 	assert.Equal(t, http.StatusCreated, recorder.Code)
@@ -78,7 +79,7 @@ func TestSecretsHandlerReportsErrorWhenCreatingSecretFails(t *testing.T) {
 	secrets := &services.MockSecrets{}
 	secrets.On("Set", "secret-a", "value-a").Return(fmt.Errorf("error reading secrets"))
 
-	handler := MakeSecretHandler(secrets)
+	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -91,7 +92,7 @@ func TestSecretsHandlerReportsOKWhenUpdatingSecretSucceeds(t *testing.T) {
 	secrets := &services.MockSecrets{}
 	secrets.On("Set", "secret-a", "value-a").Return(nil)
 
-	handler := MakeSecretHandler(secrets)
+	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -104,7 +105,7 @@ func TestSecretsHandlerReportsErrorWhenUpdatingSecretFails(t *testing.T) {
 	secrets := &services.MockSecrets{}
 	secrets.On("Set", "secret-a", "value-a").Return(fmt.Errorf("error reading secrets"))
 
-	handler := MakeSecretHandler(secrets)
+	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -117,7 +118,7 @@ func TestSecretsHandlerReportsOKWhenDeletingSecretSucceeds(t *testing.T) {
 	secrets := &services.MockSecrets{}
 	secrets.On("Delete", "secret-a").Return(nil)
 
-	handler := MakeSecretHandler(secrets)
+	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -130,7 +131,7 @@ func TestSecretsHandlerReportsErrorWhenDeletingSecretFails(t *testing.T) {
 	secrets := &services.MockSecrets{}
 	secrets.On("Delete", "secret-a").Return(fmt.Errorf("error reading secrets"))
 
-	handler := MakeSecretHandler(secrets)
+	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)

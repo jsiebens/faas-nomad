@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/jsiebens/faas-nomad/pkg/handlers"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
@@ -19,6 +21,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	logger := setupLogging()
+
+	log.SetOutput(logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
+	log.SetPrefix("")
+	log.SetFlags(0)
+
 	secrets, err := services.NewVaultSecrets(config.Vault)
 	if err != nil {
 		log.Fatal(err)
@@ -29,21 +37,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	resolver, err := services.NewConsulResolver(config)
+	resolver, err := services.NewConsulResolver(config, logger)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	bootstrapHandlers := ftypes.FaaSHandlers{
 		FunctionProxy:        proxy.NewHandlerFunc(config.FaaS, resolver),
-		FunctionReader:       handlers.MakeFunctionReader(config, jobs),
-		DeployHandler:        handlers.MakeDeployHandler(config, jobs),
-		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs, resolver),
-		ReplicaReader:        handlers.MakeReplicaReader(config, jobs),
-		ReplicaUpdater:       handlers.MakeReplicaUpdater(config, jobs),
-		SecretHandler:        handlers.MakeSecretHandler(secrets),
+		FunctionReader:       handlers.MakeFunctionReader(config, jobs, logger),
+		DeployHandler:        handlers.MakeDeployHandler(config, jobs, logger),
+		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs, resolver, logger),
+		ReplicaReader:        handlers.MakeReplicaReader(config, jobs, logger),
+		ReplicaUpdater:       handlers.MakeReplicaUpdater(config, jobs, logger),
+		SecretHandler:        handlers.MakeSecretHandler(secrets, logger),
 		LogHandler:           unimplemented,
-		UpdateHandler:        handlers.MakeDeployHandler(config, jobs),
+		UpdateHandler:        handlers.MakeDeployHandler(config, jobs, logger),
 		HealthHandler:        handlers.MakeHealthHandler(),
 		InfoHandler:          handlers.MakeInfoHandler(),
 		ListNamespaceHandler: handlers.MakeListNamespaceHandler(config),
@@ -55,4 +63,18 @@ func main() {
 
 func unimplemented(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
+}
+
+func setupLogging() hclog.Logger {
+	appLogger := hclog.New(&hclog.LoggerOptions{
+		Name:       "faas-nomad",
+		Level:      hclog.LevelFromString("debug"),
+		JSONFormat: false,
+		Output:     createLogFile(),
+	})
+	return appLogger
+}
+
+func createLogFile() *os.File {
+	return os.Stdout
 }

@@ -6,13 +6,15 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/api"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	ftypes "github.com/openfaas/faas-provider/types"
 )
 
-func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs, resolver services.ServiceResolver) func(w http.ResponseWriter, r *http.Request) {
+func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs, resolver services.ServiceResolver, logger hclog.Logger) func(w http.ResponseWriter, r *http.Request) {
+	log := logger.Named("delete_handler")
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -24,16 +26,20 @@ func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs, resolve
 			return
 		}
 
+		namespace := config.Scheduling.Namespace
 		jobName := fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, req.FunctionName)
 
-		_, _, err = jobs.Deregister(jobName, config.Scheduling.Purge, &api.WriteOptions{Namespace: config.Scheduling.Namespace})
+		_, _, err = jobs.Deregister(jobName, config.Scheduling.Purge, &api.WriteOptions{Namespace: namespace})
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			log.Error("Error deregistering function", "function", jobName, "namespace", namespace, "error", err.Error())
 			return
 		}
 
 		resolver.RemoveCacheItem(jobName)
 
+		log.Debug("Function deregistered successfully", "function", jobName, "namespace", namespace)
 		w.WriteHeader(http.StatusOK)
 	}
 

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	ftypes "github.com/openfaas/faas-provider/types"
@@ -26,7 +27,7 @@ func setupDeleteHandler(body []byte) (*services.MockJobs, *services.MockResolver
 		JobPrefix: "faas-fn-",
 	}}
 
-	handler := MakeDeleteHandler(config, jobs, resolver)
+	handler := MakeDeleteHandler(config, jobs, resolver, hclog.Default())
 
 	return jobs, resolver, handler, request, response
 }

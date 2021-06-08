@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/go-hclog"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	"github.com/patrickmn/go-cache"
 )
@@ -23,6 +24,7 @@ type consulResolver struct {
 	cache     *cache.Cache
 	prefix    string
 	namespace string
+	logger    hclog.Logger
 }
 
 type cacheItem struct {
@@ -34,7 +36,7 @@ func (c cacheItem) next() url.URL {
 	return c.addresses[randIntn(len(c.addresses))]
 }
 
-func NewConsulResolver(config *types.ProviderConfig) (ServiceResolver, error) {
+func NewConsulResolver(config *types.ProviderConfig, logger hclog.Logger) (ServiceResolver, error) {
 	clientSet := dependency.NewClientSet()
 	err := clientSet.CreateConsulClient(&dependency.CreateConsulClientInput{
 		Address: config.Consul.Addr,
@@ -57,6 +59,7 @@ func NewConsulResolver(config *types.ProviderConfig) (ServiceResolver, error) {
 		cache:     pc,
 		prefix:    config.Scheduling.JobPrefix,
 		namespace: config.Scheduling.Namespace,
+		logger:    logger,
 	}
 
 	go resolver.watch()
