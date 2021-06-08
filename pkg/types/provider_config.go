@@ -54,7 +54,12 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 		},
 
 		Nomad: NomadConfig{
-			Addr: ftypes.ParseString(env.Getenv("nomad_addr"), "http://localhost:4646"),
+			Addr:          ftypes.ParseString(env.Getenv("nomad_addr"), "http://localhost:4646"),
+			ACLToken:      ftypes.ParseString(env.Getenv("nomad_token"), ""),
+			CACert:        ftypes.ParseString(env.Getenv("nomad_tls_ca"), ""),
+			ClientCert:    ftypes.ParseString(env.Getenv("nomad_tls_cert"), ""),
+			ClientKey:     ftypes.ParseString(env.Getenv("nomad_tls_key"), ""),
+			TLSSkipVerify: ftypes.ParseBoolValue(env.Getenv("nomad_tls_skip_verify"), false),
 		},
 
 		Scheduling: SchedulingConfig{

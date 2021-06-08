@@ -14,9 +14,16 @@ type Jobs interface {
 }
 
 func NewNomadJobs(config types.NomadConfig) (Jobs, error) {
-	nomadClient, err := api.NewClient(&api.Config{
-		Address: config.Addr,
-	})
+	c := api.DefaultConfig()
+
+	c.Address = config.Addr
+	c.SecretID = config.ACLToken
+	c.TLSConfig.CACert = config.CACert
+	c.TLSConfig.ClientCert = config.ClientCert
+	c.TLSConfig.ClientKey = config.ClientKey
+	c.TLSConfig.Insecure = config.TLSSkipVerify
+
+	nomadClient, err := api.NewClient(c)
 
 	if err != nil {
 		return nil, err
