@@ -81,11 +81,58 @@ func createTaskGroups(config *types.ProviderConfig, fd ftypes.FunctionDeployment
 		DynamicPorts: []api.Port{{Label: "http", To: 8080}},
 	}
 
+	gracePeriod := 5 * time.Second
+
+	var check api.ServiceCheck
+
+	if config.Scheduling.HttpCheck {
+		check = api.ServiceCheck{
+			Type:                   "http",
+			Path:                   "/_/health",
+			PortLabel:              "http",
+			InitialStatus:          "critical",
+			SuccessBeforePassing:   1,
+			FailuresBeforeCritical: 3,
+			Interval:               5 * time.Second,
+			Timeout:                1 * time.Second,
+			CheckRestart: &api.CheckRestart{
+				Limit:          3,
+				Grace:          &gracePeriod,
+				IgnoreWarnings: false,
+			},
+		}
+	} else {
+		check = api.ServiceCheck{
+			TaskName:               fd.Service,
+			Type:                   "script",
+			Command:                "cat",
+			Args:                   []string{"/tmp/.lock"},
+			InitialStatus:          "critical",
+			SuccessBeforePassing:   1,
+			FailuresBeforeCritical: 3,
+			Interval:               5 * time.Second,
+			Timeout:                1 * time.Second,
+			CheckRestart: &api.CheckRestart{
+				Limit:          3,
+				Grace:          &gracePeriod,
+				IgnoreWarnings: false,
+			},
+		}
+	}
+
 	group := api.TaskGroup{
 		Name:     &fd.Service,
 		Count:    &count,
 		Networks: []*api.NetworkResource{&network},
-		Tasks:    []*api.Task{createTask(config, fd)},
+		Services: []*api.Service{
+			{
+				Name:      fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, fd.Service),
+				PortLabel: "http",
+				Tags:      []string{"http", "faas"},
+				Checks:    []api.ServiceCheck{check},
+			},
+		},
+		Tasks: []*api.Task{createTask(config, fd)},
 	}
 
 	return []*api.TaskGroup{&group}
@@ -111,12 +158,6 @@ func createTask(config *types.ProviderConfig, fd ftypes.FunctionDeployment) *api
 			"image":  fd.Image,
 			"ports":  []string{"http"},
 			"labels": createLabels(fd),
-		},
-		Services: []*api.Service{
-			{
-				Name:      fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, fd.Service),
-				PortLabel: "http",
-			},
 		},
 		LogConfig: &api.LogConfig{
 			MaxFiles:      &logFiles,
