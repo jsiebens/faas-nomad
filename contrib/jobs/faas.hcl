@@ -70,7 +70,7 @@ job "faas" {
         basic_auth="false"
         functions_provider_url="http://192.168.50.1:8080/"
         direct_functions="false"
-        function_namespace="openfaas-fn"
+        function_namespace="default"
         read_timeout="60s"
         write_timeout="60s"
         upstream_timeout="65s"
