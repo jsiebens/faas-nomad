@@ -57,7 +57,12 @@ type ProviderConfig struct {
 	Consul     ConsulConfig
 	Nomad      NomadConfig
 	Scheduling SchedulingConfig
+	Proxy      ProxyConfig
 	Log        LogConfig
+}
+
+type ProxyConfig struct {
+	Strategy string
 }
 
 func DefaultConfig() (*ProviderConfig, error) {
@@ -114,6 +119,10 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 			NetworkingMode: ftypes.ParseString(env.Getenv("job_network_mode"), "host"),
 			Purge:          ftypes.ParseBoolValue(env.Getenv("job_purge"), false),
 			HttpCheck:      ftypes.ParseBoolValue(env.Getenv("job_http_check"), true),
+		},
+
+		Proxy: ProxyConfig{
+			Strategy: ftypes.ParseString(env.Getenv("proxy_strategy"), "roundrobin"),
 		},
 
 		Log: LogConfig{

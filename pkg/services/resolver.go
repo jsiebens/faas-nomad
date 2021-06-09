@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul-template/dependency"
@@ -25,16 +26,20 @@ type consulResolver struct {
 	prefix    string
 	namespace string
 	logger    hclog.Logger
+	next      balancer
 }
 
 type cacheItem struct {
 	serviceQuery dependency.Dependency
 	addresses    []url.URL
+	total        uint64
 }
 
+/*
 func (c cacheItem) next() url.URL {
 	return c.addresses[randIntn(len(c.addresses))]
 }
+*/
 
 func NewConsulResolver(config *types.ProviderConfig, logger hclog.Logger) (ServiceResolver, error) {
 	clientSet := dependency.NewClientSet()
@@ -59,6 +64,11 @@ func NewConsulResolver(config *types.ProviderConfig, logger hclog.Logger) (Servi
 
 	pc := cache.New(5*time.Minute, 10*time.Minute)
 
+	var next = roundRobinBalancer
+	if strings.ToLower(config.Proxy.Strategy) == "random" {
+		next = randomBalancer
+	}
+
 	resolver := &consulResolver{
 		clientSet: clientSet,
 		watcher:   watcher,
@@ -66,6 +76,7 @@ func NewConsulResolver(config *types.ProviderConfig, logger hclog.Logger) (Servi
 		prefix:    config.Scheduling.JobPrefix,
 		namespace: config.Scheduling.Namespace,
 		logger:    logger,
+		next:      next,
 	}
 
 	go resolver.watch()
@@ -79,7 +90,7 @@ func (sr *consulResolver) Resolve(functionName string) (url.URL, error) {
 
 func (sr *consulResolver) resolveInternal(function string) (url.URL, error) {
 	if val, ok := sr.cache.Get(getCacheKey(function)); ok {
-		return val.(*cacheItem).next(), nil
+		return sr.next(val.(*cacheItem)), nil
 	}
 
 	q, err := dependency.NewCatalogServiceQuery(function)
@@ -96,7 +107,7 @@ func (sr *consulResolver) resolveInternal(function string) (url.URL, error) {
 	cs := s.([]*dependency.CatalogService)
 	item := sr.updateCatalog(q, cs)
 
-	return item.next(), nil
+	return sr.next(item), nil
 }
 
 func (sr *consulResolver) RemoveCacheItem(function string) {
@@ -157,6 +168,18 @@ func getCacheKey(function string) string {
 func toUrl(address string) url.URL {
 	parse, _ := url.Parse(address)
 	return *parse
+}
+
+type balancer func(r *cacheItem) url.URL
+
+func randomBalancer(r *cacheItem) url.URL {
+	return r.addresses[randIntn(len(r.addresses))]
+}
+
+func roundRobinBalancer(r *cacheItem) url.URL {
+	u := r.addresses[r.total%uint64(len(r.addresses))]
+	atomic.AddUint64(&r.total, 1)
+	return u
 }
 
 var randIntn = func(n int) int {
