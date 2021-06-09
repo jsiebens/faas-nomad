@@ -65,3 +65,9 @@ func writeError(w http.ResponseWriter, status int, err error) {
 	w.Write([]byte(err.Error()))
 	return
 }
+
+func writeJsonResponse(w http.ResponseWriter, code int, response []byte) {
+	w.WriteHeader(code)
+	w.Header().Set(HeaderContentType, TypeApplicationJson)
+	w.Write(response)
+}

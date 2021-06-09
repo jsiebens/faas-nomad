@@ -21,81 +21,79 @@ func MakeSecretHandler(secrets services.Secrets, logger hclog.Logger) http.Handl
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, _ := ioutil.ReadAll(r.Body)
 
-		var code int
-		var response []byte
-		var err error
-
 		switch r.Method {
 		case http.MethodGet:
-			code, response, err = getSecrets(secrets)
-			break
+			getSecrets(secrets, w, log)
+			return
 		case http.MethodPost:
-			code, response, err = setSecret(true, secrets, body)
-			break
+			setSecret(true, secrets, body, w, log)
+			return
 		case http.MethodPut:
-			code, response, err = setSecret(false, secrets, body)
-			break
+			setSecret(false, secrets, body, w, log)
+			return
 		case http.MethodDelete:
-			code, response, err = deleteSecret(secrets, body)
-			break
+			deleteSecret(secrets, body, w, log)
+			return
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-
-		if err != nil {
-			writeError(w, code, err)
-			log.Error(err.Error())
-		} else {
-			w.WriteHeader(code)
-			w.Header().Set(HeaderContentType, TypeApplicationJson)
-			w.Write(response)
-		}
 	}
 }
 
-func getSecrets(vc services.Secrets) (statusCode int, response []byte, err error) {
+func getSecrets(vc services.Secrets, w http.ResponseWriter, log hclog.Logger) {
 	secrets, err := vc.List()
 	if err != nil {
-		return http.StatusInternalServerError, nil, err
+		writeError(w, http.StatusInternalServerError, err)
+		log.Error("Error listing secrets", "error", err.Error())
 	}
 
 	resultsJson, err := json.Marshal(secrets)
 	if err != nil {
-		return http.StatusInternalServerError, nil, err
+		writeError(w, http.StatusInternalServerError, err)
+		log.Error("Error listing secrets", "error", err.Error())
 	}
 
-	return http.StatusOK, resultsJson, nil
+	writeJsonResponse(w, http.StatusOK, resultsJson)
+
+	log.Trace("Secrets listed successfully")
 }
 
-func setSecret(create bool, vc services.Secrets, body []byte) (statusCode int, response []byte, err error) {
+func setSecret(create bool, vc services.Secrets, body []byte, w http.ResponseWriter, log hclog.Logger) {
 	var secret ftypes.Secret
 
 	if err := json.Unmarshal(body, &secret); err != nil {
-		return http.StatusBadRequest, nil, err
+		writeError(w, http.StatusBadRequest, err)
+		log.Error("Error creating/updating secret", "error", err.Error())
 	}
 
 	if err := vc.Set(secret.Name, secret.Value); err != nil {
-		return http.StatusInternalServerError, nil, err
+		writeError(w, http.StatusInternalServerError, err)
+		log.Error("Error creating/updating secret", "secret", secret.Name, "error", err.Error())
 	}
 
 	if create {
-		return http.StatusCreated, nil, nil
+		writeJsonResponse(w, http.StatusCreated, nil)
+		log.Debug("Secret created successfully", "secret", secret.Name)
 	} else {
-		return http.StatusOK, nil, nil
+		writeJsonResponse(w, http.StatusOK, nil)
+		log.Debug("Secret updated successfully", "secret", secret.Name)
 	}
 }
 
-func deleteSecret(vc services.Secrets, body []byte) (statusCode int, response []byte, err error) {
+func deleteSecret(vc services.Secrets, body []byte, w http.ResponseWriter, log hclog.Logger) {
 	var secret ftypes.Secret
 
 	if err := json.Unmarshal(body, &secret); err != nil {
-		return http.StatusBadRequest, nil, err
+		writeError(w, http.StatusBadRequest, err)
+		log.Error("Error deleting secret", "error", err.Error())
 	}
 
 	if err := vc.Delete(secret.Name); err != nil {
-		return http.StatusInternalServerError, nil, err
+		writeError(w, http.StatusInternalServerError, err)
+		log.Error("Error deleting secret", "error", err.Error())
 	}
 
-	return http.StatusOK, nil, err
+	writeJsonResponse(w, http.StatusOK, nil)
+	log.Debug("Secret deleted successfully", "secret", secret.Name)
 }
