@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/jsiebens/faas-nomad/pkg/handlers"
@@ -21,7 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger := setupLogging()
+	logger := setupLogging(config.Log)
 
 	log.SetOutput(logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
 	log.SetPrefix("")
@@ -57,7 +59,8 @@ func main() {
 		ListNamespaceHandler: handlers.MakeListNamespaceHandler(config),
 	}
 
-	log.Printf("Listening on TCP port: %d\n", *config.FaaS.TCPPort)
+	logger.Info(fmt.Sprintf("Listening on TCP port: %d", *config.FaaS.TCPPort))
+
 	fbootstrap.Serve(&bootstrapHandlers, &config.FaaS)
 }
 
@@ -65,16 +68,23 @@ func unimplemented(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func setupLogging() hclog.Logger {
+func setupLogging(config types.LogConfig) hclog.Logger {
 	appLogger := hclog.New(&hclog.LoggerOptions{
 		Name:       "faas-nomad",
-		Level:      hclog.LevelFromString("debug"),
-		JSONFormat: false,
-		Output:     createLogFile(),
+		Level:      hclog.LevelFromString(config.Level),
+		JSONFormat: strings.ToLower(config.Format) == "json",
+		Output:     createLogFile(config),
 	})
 	return appLogger
 }
 
-func createLogFile() *os.File {
+func createLogFile(config types.LogConfig) *os.File {
+	if config.File != "" {
+		f, err := os.OpenFile(config.File, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		if err == nil {
+			return f
+		}
+		log.Printf("Unable to open file for output, defaulting to std out: %s\n", err.Error())
+	}
 	return os.Stdout
 }

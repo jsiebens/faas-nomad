@@ -44,6 +44,12 @@ type SchedulingConfig struct {
 	HttpCheck      bool
 }
 
+type LogConfig struct {
+	Level  string
+	Format string
+	File   string
+}
+
 type ProviderConfig struct {
 	FaaS ftypes.FaaSConfig
 
@@ -51,6 +57,7 @@ type ProviderConfig struct {
 	Consul     ConsulConfig
 	Nomad      NomadConfig
 	Scheduling SchedulingConfig
+	Log        LogConfig
 }
 
 func DefaultConfig() (*ProviderConfig, error) {
@@ -107,6 +114,12 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 			NetworkingMode: ftypes.ParseString(env.Getenv("job_network_mode"), "host"),
 			Purge:          ftypes.ParseBoolValue(env.Getenv("job_purge"), false),
 			HttpCheck:      ftypes.ParseBoolValue(env.Getenv("job_http_check"), true),
+		},
+
+		Log: LogConfig{
+			Level:  ftypes.ParseString(env.Getenv("log_level"), "info"),
+			Format: ftypes.ParseString(env.Getenv("log_format"), "text"),
+			File:   ftypes.ParseString(env.Getenv("log_file"), ""),
 		},
 	}
 
