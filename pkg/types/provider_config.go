@@ -6,6 +6,34 @@ import (
 	ftypes "github.com/openfaas/faas-provider/types"
 )
 
+type ConsulConfig struct {
+	Addr          string
+	ACLToken      string
+	CACert        string
+	ClientCert    string
+	ClientKey     string
+	TLSSkipVerify bool
+}
+
+type NomadConfig struct {
+	Addr          string
+	ACLToken      string
+	CACert        string
+	ClientCert    string
+	ClientKey     string
+	TLSSkipVerify bool
+}
+
+type VaultConfig struct {
+	Addr             string
+	CACert           string
+	ClientCert       string
+	ClientKey        string
+	TLSSkipVerify    bool
+	SecretPathPrefix string
+	Policy           string
+}
+
 type SchedulingConfig struct {
 	Region         string
 	Datacenters    []string
@@ -45,12 +73,20 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 		Vault: VaultConfig{
 			Addr:             ftypes.ParseString(env.Getenv("vault_addr"), "http://localhost:8200"),
 			SecretPathPrefix: ftypes.ParseString(env.Getenv("vault_secret_path_prefix"), "openfaas"),
+			CACert:           ftypes.ParseString(env.Getenv("vault_tls_ca"), ""),
+			ClientCert:       ftypes.ParseString(env.Getenv("vault_tls_cert"), ""),
+			ClientKey:        ftypes.ParseString(env.Getenv("vault_tls_key"), ""),
 			TLSSkipVerify:    ftypes.ParseBoolValue(env.Getenv("vault_tls_skip_verify"), false),
 			Policy:           ftypes.ParseString(env.Getenv("vault_policy"), "openfaas"),
 		},
 
 		Consul: ConsulConfig{
-			Addr: ftypes.ParseString(env.Getenv("consul_addr"), "http://localhost:8500"),
+			Addr:          ftypes.ParseString(env.Getenv("consul_addr"), "http://localhost:8500"),
+			ACLToken:      ftypes.ParseString(env.Getenv("consul_token"), ""),
+			CACert:        ftypes.ParseString(env.Getenv("consul_tls_ca"), ""),
+			ClientCert:    ftypes.ParseString(env.Getenv("consul_tls_cert"), ""),
+			ClientKey:     ftypes.ParseString(env.Getenv("consul_tls_key"), ""),
+			TLSSkipVerify: ftypes.ParseBoolValue(env.Getenv("consul_tls_skip_verify"), false),
 		},
 
 		Nomad: NomadConfig{

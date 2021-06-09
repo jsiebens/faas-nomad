@@ -23,7 +23,14 @@ func NewVaultSecrets(config types.VaultConfig) (Secrets, error) {
 	clientConfig := api.DefaultConfig()
 	clientConfig.Address = config.Addr
 
-	if err := clientConfig.ConfigureTLS(&api.TLSConfig{Insecure: config.TLSSkipVerify}); err != nil {
+	tlsConfig := api.TLSConfig{
+		CACert:     config.CACert,
+		ClientCert: config.ClientCert,
+		ClientKey:  config.ClientKey,
+		Insecure:   config.TLSSkipVerify,
+	}
+
+	if err := clientConfig.ConfigureTLS(&tlsConfig); err != nil {
 		return nil, err
 	}
 

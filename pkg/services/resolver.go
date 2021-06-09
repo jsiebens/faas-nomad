@@ -39,7 +39,13 @@ func (c cacheItem) next() url.URL {
 func NewConsulResolver(config *types.ProviderConfig, logger hclog.Logger) (ServiceResolver, error) {
 	clientSet := dependency.NewClientSet()
 	err := clientSet.CreateConsulClient(&dependency.CreateConsulClientInput{
-		Address: config.Consul.Addr,
+		Address:    config.Consul.Addr,
+		Token:      config.Consul.ACLToken,
+		SSLEnabled: strings.HasPrefix(config.Consul.Addr, "https"),
+		SSLCACert:  config.Consul.CACert,
+		SSLCert:    config.Consul.ClientCert,
+		SSLKey:     config.Consul.ClientKey,
+		SSLVerify:  !config.Consul.TLSSkipVerify,
 	})
 
 	if err != nil {
