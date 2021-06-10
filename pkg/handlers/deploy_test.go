@@ -95,3 +95,56 @@ func TestDeployHandlerWithInitialScaleCount(t *testing.T) {
 
 	assert.Equal(t, 3, *count)
 }
+
+func TestDeployHandlerWithMultipleDatacenters(t *testing.T) {
+	req := ftypes.FunctionDeployment{}
+	req.Service = "Func123"
+	req.Constraints = []string{"datacenter == test1", "datacenter = test2"}
+	body, _ := json.Marshal(req)
+
+	jobs, deployHandler, request, recorder := setupDeployHandler(body)
+
+	jobs.On("Register", mock.Anything, mock.Anything).Return(nil, nil, nil)
+
+	deployHandler(recorder, request)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	args := jobs.Calls[0].Arguments
+	job := args.Get(0).(*api.Job)
+	dcs := job.Datacenters
+
+	assert.Equal(t, "test1", dcs[0])
+	assert.Equal(t, "test2", dcs[1])
+}
+
+func TestDeployHandlerWithConstraints(t *testing.T) {
+	req := ftypes.FunctionDeployment{}
+	req.Service = "Func123"
+	req.Constraints = []string{
+		"${constraint1} = v1",
+		"constraint2 == v2",
+		"ignoreme =",
+		"ignore.datacenter == dc1",
+	}
+	body, _ := json.Marshal(req)
+
+	expectedConstraint1 := api.Constraint{LTarget: "${constraint1}", Operand: "=", RTarget: "v1"}
+	expectedConstraint2 := api.Constraint{LTarget: "${constraint2}", Operand: "=", RTarget: "v2"}
+
+	jobs, deployHandler, request, recorder := setupDeployHandler(body)
+
+	jobs.On("Register", mock.Anything, mock.Anything).Return(nil, nil, nil)
+
+	deployHandler(recorder, request)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	args := jobs.Calls[0].Arguments
+	job := args.Get(0).(*api.Job)
+	constraints := job.Constraints
+
+	assert.Equal(t, 2, len(constraints))
+	assert.Equal(t, expectedConstraint1, *constraints[0])
+	assert.Equal(t, expectedConstraint2, *constraints[1])
+}

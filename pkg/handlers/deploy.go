@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -59,7 +61,7 @@ func MakeDeployHandler(config *types.ProviderConfig, jobs services.Jobs, logger 
 func createJob(config *types.ProviderConfig, namespace string, fd ftypes.FunctionDeployment) *api.Job {
 
 	region := config.Scheduling.Region
-	datacenters := config.Scheduling.Datacenters
+	constraints, datacenters := createConstraints(config, fd)
 	name := fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, fd.Service)
 	priority := 50
 
@@ -68,6 +70,7 @@ func createJob(config *types.ProviderConfig, namespace string, fd ftypes.Functio
 	job.Meta = createAnnotations(fd)
 	job.Update = createUpdateStrategy()
 	job.Datacenters = datacenters
+	job.Constraints = constraints
 	job.TaskGroups = createTaskGroups(config, fd)
 
 	return job
@@ -218,6 +221,53 @@ func createLabels(r ftypes.FunctionDeployment) []map[string]interface{} {
 		}
 	}
 	return []map[string]interface{}{labels}
+}
+
+func createConstraints(config *types.ProviderConfig, r ftypes.FunctionDeployment) ([]*api.Constraint, []string) {
+	var constraints []*api.Constraint
+	var datacenters []string
+
+	if r.Constraints == nil || len(r.Constraints) == 0 {
+		return constraints, config.Scheduling.Datacenters
+	}
+
+	for _, requestConstraint := range r.Constraints {
+		fields := strings.Fields(requestConstraint)
+
+		if len(fields) < 3 {
+			continue
+		}
+
+		if strings.Contains(fields[0], "datacenter") && (fields[1] == "==" || fields[1] == "=") {
+			datacenters = append(datacenters, fields[2])
+			continue
+		}
+
+		attribute := fields[0]
+		operator := fields[1]
+		value := strings.Join(fields[2:], " ")
+
+		match, _ := regexp.MatchString("^\\${.*}$", attribute)
+		if !match {
+			attribute = fmt.Sprintf("${%v}", attribute)
+		}
+
+		if operator == "==" {
+			operator = "="
+		}
+
+		constraints = append(constraints, &api.Constraint{
+			LTarget: attribute,
+			Operand: operator,
+			RTarget: value,
+		})
+	}
+
+	if len(datacenters) != 0 {
+		return constraints, datacenters
+	} else {
+		return constraints, config.Scheduling.Datacenters
+	}
 }
 
 func createEnvVars(r ftypes.FunctionDeployment) map[string]string {
