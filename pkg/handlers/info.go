@@ -12,15 +12,14 @@ const (
 	ProviderName            = "faas-nomad"
 )
 
-func MakeInfoHandler() http.HandlerFunc {
+func MakeInfoHandler(version, sha string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providerInfo := types.ProviderInfo{
 			Orchestration: OrchestrationIdentifier,
 			Name:          ProviderName,
 			Version: &types.VersionInfo{
-				Release:       "0.0.0",
-				SHA:           "",
-				CommitMessage: "",
+				Release: version,
+				SHA:     sha,
 			},
 		}
 

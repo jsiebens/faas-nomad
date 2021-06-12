@@ -11,6 +11,7 @@ import (
 	"github.com/jsiebens/faas-nomad/pkg/handlers"
 	"github.com/jsiebens/faas-nomad/pkg/services"
 	"github.com/jsiebens/faas-nomad/pkg/types"
+	"github.com/jsiebens/faas-nomad/version"
 	fbootstrap "github.com/openfaas/faas-provider"
 	"github.com/openfaas/faas-provider/proxy"
 	ftypes "github.com/openfaas/faas-provider/types"
@@ -55,7 +56,7 @@ func main() {
 		LogHandler:           unimplemented,
 		UpdateHandler:        handlers.MakeDeployHandler(config, jobs, logger),
 		HealthHandler:        handlers.MakeHealthHandler(),
-		InfoHandler:          handlers.MakeInfoHandler(),
+		InfoHandler:          handlers.MakeInfoHandler(version.BuildVersion(), version.GitCommit),
 		ListNamespaceHandler: handlers.MakeListNamespaceHandler(config),
 	}
 

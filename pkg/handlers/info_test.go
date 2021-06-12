@@ -16,7 +16,7 @@ func TestInfoHandlerReportsProviderInfo(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/system/info", bytes.NewReader([]byte("")))
 
-	handler := MakeInfoHandler()
+	handler := MakeInfoHandler("1.2.3", "fa097935ca9d551d91fa78ed81ec05c6a1df249f")
 	handler(recorder, request)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -32,9 +32,9 @@ func TestInfoHandlerReportsProviderInfo(t *testing.T) {
 	unmarshalErr := json.Unmarshal(body, &info)
 
 	assert.Nil(t, unmarshalErr, "Expected no error")
-	assert.Equal(t, info.Orchestration, OrchestrationIdentifier)
-	assert.Equal(t, info.Name, ProviderName)
-	assert.Equal(t, info.Version.Release, "0.0.0")
-	assert.Equal(t, info.Version.SHA, "")
-	assert.Equal(t, info.Version.CommitMessage, "")
+	assert.Equal(t, OrchestrationIdentifier, info.Orchestration)
+	assert.Equal(t, ProviderName, info.Name)
+	assert.Equal(t, "1.2.3", info.Version.Release)
+	assert.Equal(t, "fa097935ca9d551d91fa78ed81ec05c6a1df249f", info.Version.SHA)
+	assert.Equal(t, "", info.Version.CommitMessage)
 }
