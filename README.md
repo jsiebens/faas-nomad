@@ -1,4 +1,4 @@
-faas-nomad - OpenFaas provider for HashiCorp Nomad
+faas-nomad - OpenFaas provider for Nomad
 ===========
 
 [![Build Status](https://github.com/jsiebens/faas-nomad/workflows/build/badge.svg?branch=main)](https://github.com/jsiebens/faas-nomad/actions)
@@ -6,7 +6,7 @@ faas-nomad - OpenFaas provider for HashiCorp Nomad
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![OpenFaaS](https://img.shields.io/badge/openfaas-serverless-blue.svg)](https://www.openfaas.com)
 
-This repository contains an OpenFaaS provider for the Nomad scheduler. 
+This repository contains an OpenFaaS provider for the HashiCorp Nomad scheduler. 
 OpenFaaS allows you to run your private functions as a service. 
 Functions are packaged in Docker Containers which enables you to work in any language and also interact with any software which can also be installed in the container.
 
