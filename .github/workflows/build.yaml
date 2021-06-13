@@ -1,8 +1,8 @@
-name: publish
+name: build
 
 on:
   push:
-    tags: [ '*' ]
+    branches: [ 'main' ]
 
 jobs:
   publish:
@@ -15,9 +15,6 @@ jobs:
       - uses: actions/checkout@master
         with:
           fetch-depth: 1
-      - name: Get tags
-        id: get_tag
-        run: echo ::set-output name=TAG::${GITHUB_REF#refs/tags/}
       - name: Set Username/Repo and ImagePrefix as ENV vars
         run: |
           echo "USER_REPO"=$(echo "$GITHUB_REPOSITORY" | awk '{print tolower($1)}' | sed -e "s/:refs//") >> $GITHUB_ENV && \
@@ -48,4 +45,5 @@ jobs:
             REPO_URL=https://github.com/${{ env.USER_REPO }}
           push: true
           tags: |
-            ${{ env.IMAGE_PREFIX }}:${{ steps.get_tag.outputs.TAG }}
+            ${{ env.IMAGE_PREFIX }}:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}:latest
