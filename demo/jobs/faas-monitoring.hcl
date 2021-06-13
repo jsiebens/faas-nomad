@@ -15,7 +15,7 @@ job "faas-monitoring" {
       mode = "bridge"
       port "prometheus" {
         static = 9090
-        to = 9090
+        to     = 9090
       }
     }
 
@@ -34,6 +34,11 @@ job "faas-monitoring" {
     }
 
     task "alertmanager" {
+
+      vault {
+        policies = ["openfaas"]
+      }
+
       template {
         change_mode = "noop"
         destination = "local/alertmanager.yml"
@@ -62,7 +67,16 @@ receivers:
   webhook_configs:
     - url: http://gateway.service.consul:8080/system/alert
       send_resolved: true
+      http_config:
+        basic_auth:
+          username: {{with secret "openfaas/basic-auth-user"}}{{.Data.value}}{{end}}
+          password_file: /run/secrets/basic-auth-password
 EOH
+      }
+
+      template {
+        data        = "{{with secret \"openfaas/basic-auth-password\"}}{{.Data.value}}{{end}}"
+        destination = "secrets/basic-auth-password"
       }
 
       driver = "docker"
@@ -75,6 +89,7 @@ EOH
 
         volumes = [
           "local/alertmanager.yml:/etc/alertmanager/alertmanager.yml",
+          "secrets/basic-auth-password:/run/secrets/basic-auth-password"
         ]
       }
     }
