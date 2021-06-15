@@ -92,22 +92,28 @@ resource "digitalocean_firewall" "gateway" {
   tags = [digitalocean_tag.client.id]
 
   inbound_rule {
-    protocol         = "tcp"
-    port_range       = "8080"
-    source_addresses = ["0.0.0.0/0"]
+    protocol                  = "tcp"
+    port_range                = "8080"
+    source_load_balancer_uids = [digitalocean_loadbalancer.public.id]
   }
 }
 
-resource "digitalocean_firewall" "internal" {
-  name = local.name
+resource "digitalocean_firewall" "server" {
+  name = format("%s-server", local.name)
 
-  tags = [digitalocean_tag.main.id]
+  tags = [digitalocean_tag.server.id]
 
   inbound_rule {
     protocol         = "tcp"
     port_range       = "1-65535"
     source_addresses = ["${module.my_ip_address.stdout}/32"]
   }
+}
+
+resource "digitalocean_firewall" "internal" {
+  name = format("%s-internal", local.name)
+
+  tags = [digitalocean_tag.main.id]
 
   inbound_rule {
     protocol    = "tcp"
