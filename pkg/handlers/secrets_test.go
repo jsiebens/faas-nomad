@@ -98,6 +98,18 @@ func TestSecretsHandlerReportsOKWhenUpdatingSecretSucceeds(t *testing.T) {
 	assert.Equal(t, http.StatusOK, recorder.Code)
 }
 
+func TestSecretsHandlerReportsBadRequestWhenCreatingBindarySecret(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/system/secrets", bytes.NewReader(secretRequestWithRawValue("secret-a", "value-a")))
+
+	secrets := &services.MockSecrets{}
+
+	handler := MakeSecretHandler(secrets, hclog.Default())
+	handler(recorder, request)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
 func TestSecretsHandlerReportsErrorWhenUpdatingSecretFails(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("PUT", "/system/secrets", bytes.NewReader(secretRequest("secret-a", "value-a")))
@@ -145,6 +157,12 @@ func deleteRequest(name string) []byte {
 
 func secretRequest(name, value string) []byte {
 	req := ftypes.Secret{Name: name, Value: value}
+	data, _ := json.Marshal(req)
+	return data
+}
+
+func secretRequestWithRawValue(name, value string) []byte {
+	req := ftypes.Secret{Name: name, RawValue: []byte(value)}
 	data, _ := json.Marshal(req)
 	return data
 }
