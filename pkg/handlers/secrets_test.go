@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -60,11 +61,13 @@ func TestSecretsHandlerReportsErrorWhenListingSecrets(t *testing.T) {
 }
 
 func TestSecretsHandlerReportsCreatedWhenCreatingSecretSucceeds(t *testing.T) {
+	value := "value-a"
+	encoded := base64.StdEncoding.EncodeToString([]byte("value-a"))
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("POST", "/system/secrets", bytes.NewReader(secretRequest("secret-a", "value-a")))
+	request := httptest.NewRequest("POST", "/system/secrets", bytes.NewReader(secretRequest("secret-a", value)))
 
 	secrets := &services.MockSecrets{}
-	secrets.On("Set", "secret-a", "value-a").Return(nil)
+	secrets.On("Set", "secret-a", encoded).Return(nil)
 
 	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
@@ -73,11 +76,14 @@ func TestSecretsHandlerReportsCreatedWhenCreatingSecretSucceeds(t *testing.T) {
 }
 
 func TestSecretsHandlerReportsErrorWhenCreatingSecretFails(t *testing.T) {
+	value := "value-a"
+	encoded := base64.StdEncoding.EncodeToString([]byte("value-a"))
+
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("POST", "/system/secrets", bytes.NewReader(secretRequest("secret-a", "value-a")))
+	request := httptest.NewRequest("POST", "/system/secrets", bytes.NewReader(secretRequest("secret-a", value)))
 
 	secrets := &services.MockSecrets{}
-	secrets.On("Set", "secret-a", "value-a").Return(fmt.Errorf("error reading secrets"))
+	secrets.On("Set", "secret-a", encoded).Return(fmt.Errorf("error reading secrets"))
 
 	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
@@ -86,11 +92,14 @@ func TestSecretsHandlerReportsErrorWhenCreatingSecretFails(t *testing.T) {
 }
 
 func TestSecretsHandlerReportsOKWhenUpdatingSecretSucceeds(t *testing.T) {
+	value := "value-a"
+	encoded := base64.StdEncoding.EncodeToString([]byte("value-a"))
+
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("PUT", "/system/secrets", bytes.NewReader(secretRequest("secret-a", "value-a")))
+	request := httptest.NewRequest("PUT", "/system/secrets", bytes.NewReader(secretRequest("secret-a", value)))
 
 	secrets := &services.MockSecrets{}
-	secrets.On("Set", "secret-a", "value-a").Return(nil)
+	secrets.On("Set", "secret-a", encoded).Return(nil)
 
 	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
@@ -98,24 +107,31 @@ func TestSecretsHandlerReportsOKWhenUpdatingSecretSucceeds(t *testing.T) {
 	assert.Equal(t, http.StatusOK, recorder.Code)
 }
 
-func TestSecretsHandlerReportsBadRequestWhenCreatingBindarySecret(t *testing.T) {
+func TestSecretsHandlerReportsOKWhenCreatingBindarySecret(t *testing.T) {
+	value := "value-a"
+	encoded := base64.StdEncoding.EncodeToString([]byte("value-a"))
+
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("POST", "/system/secrets", bytes.NewReader(secretRequestWithRawValue("secret-a", "value-a")))
+	request := httptest.NewRequest("POST", "/system/secrets", bytes.NewReader(secretRequestWithRawValue("secret-a", value)))
 
 	secrets := &services.MockSecrets{}
+	secrets.On("Set", "secret-a", encoded).Return(nil)
 
 	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)
 
-	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Equal(t, http.StatusCreated, recorder.Code)
 }
 
 func TestSecretsHandlerReportsErrorWhenUpdatingSecretFails(t *testing.T) {
+	value := "value-a"
+	encoded := base64.StdEncoding.EncodeToString([]byte("value-a"))
+
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("PUT", "/system/secrets", bytes.NewReader(secretRequest("secret-a", "value-a")))
+	request := httptest.NewRequest("PUT", "/system/secrets", bytes.NewReader(secretRequest("secret-a", value)))
 
 	secrets := &services.MockSecrets{}
-	secrets.On("Set", "secret-a", "value-a").Return(fmt.Errorf("error reading secrets"))
+	secrets.On("Set", "secret-a", encoded).Return(fmt.Errorf("error reading secrets"))
 
 	handler := MakeSecretHandler(secrets, hclog.Default())
 	handler(recorder, request)

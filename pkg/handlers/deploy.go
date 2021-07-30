@@ -309,7 +309,7 @@ func createSecrets(vaultPrefix string, secrets []string) []*api.Template {
 		path := fmt.Sprintf("%s/%s", vaultPrefix, s)
 		destPath := "secrets/" + s
 
-		embeddedTemplate := fmt.Sprintf(`{{with secret "%s"}}{{.Data.value}}{{end}}`, path)
+		embeddedTemplate := fmt.Sprintf(`{{with secret "%s"}}{{base64Decode .Data.value}}{{end}}`, path)
 		template := &api.Template{
 			DestPath:     &destPath,
 			EmbeddedTmpl: &embeddedTemplate,

@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -68,14 +68,15 @@ func setSecret(create bool, vc services.Secrets, body []byte, w http.ResponseWri
 		log.Error("Error creating/updating secret", "error", err.Error())
 	}
 
+	var value = ""
+
 	if len(secret.RawValue) > 0 {
-		err := fmt.Errorf("binary secrets are not supported by this provider")
-		writeError(w, http.StatusBadRequest, err)
-		log.Error("Error creating/updating secret", "secret", secret.Name, "error", err.Error())
-		return
+		value = base64.StdEncoding.EncodeToString(secret.RawValue)
+	} else {
+		value = base64.StdEncoding.EncodeToString([]byte(secret.Value))
 	}
 
-	if err := vc.Set(secret.Name, secret.Value); err != nil {
+	if err := vc.Set(secret.Name, value); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		log.Error("Error creating/updating secret", "secret", secret.Name, "error", err.Error())
 	}
