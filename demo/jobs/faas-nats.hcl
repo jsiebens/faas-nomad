@@ -25,7 +25,7 @@ job "faas-nats" {
     task "nats" {
       driver = "docker"
       config {
-        image = "docker.io/library/nats-streaming:0.11.2"
+        image = "docker.io/library/nats-streaming:0.22.0"
         entrypoint = [
         "/nats-streaming-server"]
         args = [

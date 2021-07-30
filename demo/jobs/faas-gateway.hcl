@@ -7,7 +7,7 @@ job "faas-gateway" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/openfaas/queue-worker:0.11.6"
+        image = "ghcr.io/openfaas/queue-worker:0.12.4"
         volumes = [
           "secrets/basic-auth-user:/run/secrets/basic-auth-user",
           "secrets/basic-auth-password:/run/secrets/basic-auth-password"
@@ -90,7 +90,7 @@ job "faas-gateway" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/openfaas/gateway:0.20.11"
+        image = "ghcr.io/openfaas/gateway:0.21.1"
         ports = ["gateway"]
         volumes = [
           "secrets/basic-auth-user:/run/secrets/basic-auth-user",
@@ -163,7 +163,7 @@ job "faas-gateway" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/openfaas/basic-auth:0.20.12"
+        image = "ghcr.io/openfaas/basic-auth:0.21.1"
         volumes = [
           "secrets/basic-auth-user:/run/secrets/basic-auth-user",
           "secrets/basic-auth-password:/run/secrets/basic-auth-password"
