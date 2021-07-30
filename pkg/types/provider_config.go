@@ -85,12 +85,12 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 
 		Vault: VaultConfig{
 			Addr:             ftypes.ParseString(env.Getenv("vault_addr"), "http://localhost:8200"),
-			SecretPathPrefix: ftypes.ParseString(env.Getenv("vault_secret_path_prefix"), "openfaas"),
+			SecretPathPrefix: ftypes.ParseString(env.Getenv("vault_secret_path_prefix"), "openfaas-fn"),
 			CACert:           ftypes.ParseString(env.Getenv("vault_tls_ca"), ""),
 			ClientCert:       ftypes.ParseString(env.Getenv("vault_tls_cert"), ""),
 			ClientKey:        ftypes.ParseString(env.Getenv("vault_tls_key"), ""),
 			TLSSkipVerify:    ftypes.ParseBoolValue(env.Getenv("vault_tls_skip_verify"), false),
-			Policy:           ftypes.ParseString(env.Getenv("vault_policy"), "openfaas"),
+			Policy:           ftypes.ParseString(env.Getenv("vault_policy"), "openfaas-fn"),
 		},
 
 		Consul: ConsulConfig{
