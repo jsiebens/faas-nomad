@@ -44,6 +44,7 @@ export VAULT_TOKEN=$(grep Initial /etc/vault.d/vault-keys.log | cut -c21-)
 vault operator unseal $${UNSEAL_KEY}
 vault secrets disable secret/
 vault secrets enable -path=openfaas -version=1 kv
+vault secrets enable -path=openfaas-fn -version=1 kv
 
 vault kv put openfaas/basic-auth-password value=${token}
 vault kv put openfaas/basic-auth-user value=admin
@@ -53,11 +54,21 @@ curl https://nomadproject.io/data/vault/nomad-cluster-role.json -O -s -L
 
 tee openfaas.hcl >/dev/null <<EOF
 path "openfaas/*" {
+  capabilities = ["read", "list"]
+}
+path "openfaas-fn/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
 }
 EOF
 
+tee openfaas-fn.hcl >/dev/null <<EOF
+path "openfaas-fn/*" {
+  capabilities = ["read"]
+}
+EOF
+
 vault policy write openfaas openfaas.hcl
+vault policy write openfaas-fn openfaas-fn.hcl
 vault policy write nomad-server nomad-server-policy.hcl
 vault write /auth/token/roles/nomad-cluster @nomad-cluster-role.json
 
