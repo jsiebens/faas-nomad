@@ -21,7 +21,7 @@ RUN VERSION=$(git describe --all --exact-match `git rev-parse HEAD` | grep tags 
         -X github.com/jsiebens/faas-nomad/version.Version=${VERSION}" \
         -a -installsuffix cgo -o faas-nomad .
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} alpine:3.13 as ship
+FROM --platform=${TARGETPLATFORM:-linux/amd64} alpine:3.14.0 as ship
 
 RUN apk --no-cache add \
     ca-certificates
