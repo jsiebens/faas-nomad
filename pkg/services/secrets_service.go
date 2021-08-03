@@ -43,6 +43,7 @@ func NewVaultSecrets(config types.VaultConfig) (Secrets, error) {
 	vs := &VaultSecrets{
 		client: vaultClient,
 		prefix: config.SecretPathPrefix,
+		token:  config.Token,
 	}
 
 	if err := vs.login(); err != nil {
@@ -55,6 +56,7 @@ func NewVaultSecrets(config types.VaultConfig) (Secrets, error) {
 type VaultSecrets struct {
 	client *api.Client
 	prefix string
+	token  string
 }
 
 func (vs *VaultSecrets) List() ([]ftypes.Secret, error) {
@@ -105,7 +107,7 @@ func (vs *VaultSecrets) renew() {
 func (vs *VaultSecrets) readToken() string {
 	file, err := ioutil.ReadFile("secrets/vault_token")
 	if err != nil {
-		return os.Getenv("VAULT_TOKEN")
+		return vs.token
 	}
 	return string(file)
 }

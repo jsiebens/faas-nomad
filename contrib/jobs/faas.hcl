@@ -17,10 +17,6 @@ job "faas" {
         static = 8080
         to = 8080
       }
-      port "metrics" {
-        static = 8082
-        to = 8082
-      }
       port "prometheus" {
         static = 9090
         to = 9090
@@ -42,7 +38,7 @@ job "faas" {
     task "nats" {
       driver = "docker"
       config {
-        image = "docker.io/library/nats-streaming:0.11.2"
+        image = "docker.io/library/nats-streaming:0.22.0"
         entrypoint = ["/nats-streaming-server"]
         args = [
           "-m",
@@ -58,11 +54,33 @@ job "faas" {
       }
     }
 
+    task "queue-worker" {
+      driver = "docker"
+
+      config {
+        image = "ghcr.io/openfaas/queue-worker:0.12.4"
+      }
+
+      env {
+        basic_auth           = "false"
+        gateway_invoke       = "true"
+        faas_gateway_address = "localhost"
+        faas_gateway_port    = "8080"
+        faas_nats_address    = "localhost"
+        faas_nats_port       = "4222"
+      }
+
+      resources {
+        cpu    = 50
+        memory = 50
+      }
+    }
+
     task "gateway" {
       driver = "docker"
 
       config {
-        image = "ghcr.io/openfaas/gateway:0.20.11"
+        image = "ghcr.io/openfaas/gateway:0.21.1"
         ports = ["gateway"]
       }
 
@@ -130,6 +148,10 @@ EOH
         volumes = [
           "local/alertmanager.yml:/etc/alertmanager/alertmanager.yml",
         ]
+      }
+      resources {
+        cpu    = 50
+        memory = 50
       }
     }
 
@@ -200,6 +222,10 @@ EOH
           "local/prometheus.yml:/etc/prometheus/prometheus.yml",
           "local/alert.rules.yml:/etc/prometheus/alert.rules.yml",
         ]
+      }
+      resources {
+        cpu    = 50
+        memory = 50
       }
     }
   }

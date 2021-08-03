@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,9 +18,14 @@ import (
 	ftypes "github.com/openfaas/faas-provider/types"
 )
 
-func main() {
+var (
+	configFile = flag.String("config", "", "Path to the configuration file.")
+)
 
-	config, err := types.LoadConfig()
+func main() {
+	flag.Parse()
+
+	config, err := types.LoadConfig(*configFile)
 	if err != nil {
 		log.Fatal(err)
 	}

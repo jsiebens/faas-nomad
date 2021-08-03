@@ -1,6 +1,9 @@
 package types
 
 import (
+	"github.com/mitchellh/go-homedir"
+	"github.com/spf13/viper"
+	"os"
 	"strings"
 
 	ftypes "github.com/openfaas/faas-provider/types"
@@ -26,6 +29,7 @@ type NomadConfig struct {
 
 type VaultConfig struct {
 	Addr             string
+	Token            string
 	CACert           string
 	ClientCert       string
 	ClientKey        string
@@ -69,8 +73,13 @@ func DefaultConfig() (*ProviderConfig, error) {
 	return doLoadConfig(emptyEnv{})
 }
 
-func LoadConfig() (*ProviderConfig, error) {
-	return doLoadConfig(ftypes.OsEnv{})
+func LoadConfig(filename string) (*ProviderConfig, error) {
+	properties, err := readPropertiesFile(filename)
+	if err != nil {
+		return nil, err
+	} else {
+		return doLoadConfig(properties)
+	}
 }
 
 func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
@@ -85,6 +94,7 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 
 		Vault: VaultConfig{
 			Addr:             ftypes.ParseString(env.Getenv("vault_addr"), "http://localhost:8200"),
+			Token:            ftypes.ParseString(env.Getenv("vault_token"), ""),
 			SecretPathPrefix: ftypes.ParseString(env.Getenv("vault_secret_path_prefix"), "openfaas-fn"),
 			CACert:           ftypes.ParseString(env.Getenv("vault_tls_ca"), ""),
 			ClientCert:       ftypes.ParseString(env.Getenv("vault_tls_cert"), ""),
@@ -140,4 +150,41 @@ type emptyEnv struct {
 
 func (emptyEnv) Getenv(key string) string {
 	return ""
+}
+
+type viperEnv struct {
+}
+
+func (p viperEnv) Getenv(key string) string {
+	s := viper.GetString(key)
+	if len(s) != 0 {
+		return s
+	}
+	return os.Getenv(key)
+}
+
+func readPropertiesFile(filename string) (ftypes.HasEnv, error) {
+	if len(filename) == 0 {
+		return ftypes.OsEnv{}, nil
+	}
+
+	res, err := homedir.Expand(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	viper.SetConfigFile(res)
+	viper.AutomaticEnv()
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return viperEnv{}, nil
+}
+
+func expandPath(path string) string {
+	res, _ := homedir.Expand(path)
+	return res
 }
