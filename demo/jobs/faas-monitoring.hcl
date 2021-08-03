@@ -137,7 +137,11 @@ scrape_configs:
     scrape_interval: 5s
     consul_sd_configs:
       - server: '{{ env "attr.unique.network.ip-address" }}:8500'
-        services: ["gateway-metrics"]
+        services: ["faas-gateway"]
+    relabel_configs:
+    - source_labels: ['__meta_consul_tags']
+      regex: '(.*)metrics(.*)'
+      action: keep
 
 rule_files:
   - '/etc/prometheus/alert.rules.yml'

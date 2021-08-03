@@ -61,7 +61,7 @@ job "faas-gateway" {
     }
 
     service {
-      name = "gateway"
+      name = "faas-gateway"
       port = "gateway"
       tags = ["faas", "gateway"]
 
@@ -74,7 +74,7 @@ job "faas-gateway" {
     }
 
     service {
-      name = "gateway-metrics"
+      name = "faas-gateway"
       port = "metrics"
       tags = ["faas", "metrics"]
 
