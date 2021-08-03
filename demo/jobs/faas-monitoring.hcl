@@ -65,7 +65,7 @@ inhibit_rules:
 receivers:
 - name: 'scale-up'
   webhook_configs:
-    - url: http://gateway.service.consul:8080/system/alert
+    - url: http://faas-gateway.service.consul:8080/system/alert
       send_resolved: true
       http_config:
         basic_auth:

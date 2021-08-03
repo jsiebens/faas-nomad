@@ -53,6 +53,12 @@ vault {
 }
 EOF
 
+sudo tee /etc/nomad.d/config/client.hcl >/dev/null <<EOF
+client {
+  network_interface = "eth1"
+}
+EOF
+
 systemctl start nomad
 
 echo 'debconf debconf/frontend select Dialog' | sudo debconf-set-selections
