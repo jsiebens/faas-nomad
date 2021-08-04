@@ -93,7 +93,7 @@ func (sr *consulResolver) resolveInternal(function string) (url.URL, error) {
 		return sr.next(val.(*cacheItem)), nil
 	}
 
-	q, err := dependency.NewCatalogServiceQuery(function)
+	q, err := dependency.NewHealthServiceQuery(function)
 	if err != nil {
 		return url.URL{}, err
 	}
@@ -104,7 +104,7 @@ func (sr *consulResolver) resolveInternal(function string) (url.URL, error) {
 	}
 	sr.watcher.Add(q)
 
-	cs := s.([]*dependency.CatalogService)
+	cs := s.([]*dependency.HealthService)
 	item := sr.updateCatalog(q, cs)
 
 	return sr.next(item), nil
@@ -122,23 +122,22 @@ func (sr *consulResolver) watch() {
 	for cs := range sr.watcher.DataCh() {
 		sr.updateCatalog(
 			cs.Dependency(),
-			cs.Data().([]*dependency.CatalogService),
+			cs.Data().([]*dependency.HealthService),
 		)
 	}
 }
 
-func (sr *consulResolver) updateCatalog(dep dependency.Dependency, cs []*dependency.CatalogService) *cacheItem {
+func (sr *consulResolver) updateCatalog(dep dependency.Dependency, cs []*dependency.HealthService) *cacheItem {
 	addresses := make([]url.URL, 0)
 
 	if len(cs) < 1 {
 		return sr.upsertCache(dep, addresses)
 	}
 
-	for _, addr := range cs {
-		addresses = append(
-			addresses,
-			toUrl(fmt.Sprintf("http://%v:%v", addr.ServiceAddress, addr.ServicePort)),
-		)
+	for _, s := range cs {
+		if len(s.Checks) > 1 {
+			addresses = append(addresses, toUrl(fmt.Sprintf("http://%v:%v", s.Address, s.Port)))
+		}
 	}
 
 	return sr.upsertCache(dep, addresses)
@@ -162,7 +161,7 @@ func (sr *consulResolver) upsertCache(dep dependency.Dependency, value []url.URL
 }
 
 func getCacheKey(function string) string {
-	return fmt.Sprintf("catalog.service(%s)", function)
+	return fmt.Sprintf("health.service(%s|passing)", function)
 }
 
 func toUrl(address string) url.URL {
