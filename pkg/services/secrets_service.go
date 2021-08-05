@@ -87,6 +87,10 @@ func (vs *VaultSecrets) Delete(key string) error {
 // Gets and sets the initial access token from Vault
 func (vs *VaultSecrets) login() error {
 	token := vs.readToken()
+	if len(token) == 0 {
+		return fmt.Errorf("unable to find Vault token")
+	}
+
 	vs.client.SetToken(token)
 	go vs.renew()
 	return nil
@@ -105,7 +109,7 @@ func (vs *VaultSecrets) renew() {
 }
 
 func (vs *VaultSecrets) readToken() string {
-	file, err := ioutil.ReadFile("secrets/vault_token")
+	file, err := ioutil.ReadFile("/secrets/vault_token")
 	if err != nil {
 		return vs.token
 	}
