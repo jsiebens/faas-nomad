@@ -31,16 +31,18 @@ func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs, logge
 			return
 		}
 
-		// get the number of available allocations from the job
-		readyCount, err := getAllocationReadyCount(client, job, options)
-		if err != nil {
+		status := createFunctionStatus(job, config.Scheduling.JobPrefix)
+
+		deployment, _, err := client.LatestDeployment(fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, functionName), options)
+		if deployment != nil && err == nil {
+			state := deployment.TaskGroups[functionName]
+			status.Replicas = uint64(state.DesiredTotal)
+			status.AvailableReplicas = uint64(state.HealthyAllocs)
+		} else {
 			writeError(w, http.StatusInternalServerError, err)
 			log.Error("Error reading function status", "function", functionName, "namespace", namespace, "error", err.Error())
 			return
 		}
-
-		status := createFunctionStatus(job, config.Scheduling.JobPrefix)
-		status.AvailableReplicas = readyCount
 
 		statusBytes, _ := json.Marshal(status)
 		w.Header().Set(HeaderContentType, TypeApplicationJson)
@@ -50,19 +52,4 @@ func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs, logge
 		log.Trace("Function status read successfully", "function", functionName, "namespace", namespace)
 	}
 
-}
-
-func getAllocationReadyCount(client services.Jobs, job *api.Job, q *api.QueryOptions) (uint64, error) {
-	allocations, _, err := client.Allocations(*job.ID, true, q)
-	var readyCount uint64
-
-	for _, a := range allocations {
-		for _, ts := range a.TaskStates {
-			if ts.State == "running" {
-				readyCount += 1
-			}
-		}
-	}
-
-	return readyCount, err
 }

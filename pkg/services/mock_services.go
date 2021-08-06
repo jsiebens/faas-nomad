@@ -69,6 +69,22 @@ func (m *MockJobs) Info(jobID string, q *api.QueryOptions) (*api.Job, *api.Query
 	return job, meta, args.Error(2)
 }
 
+func (m *MockJobs) LatestDeployment(jobID string, q *api.QueryOptions) (*api.Deployment, *api.QueryMeta, error) {
+	args := m.Called(jobID, q)
+
+	var deployment *api.Deployment
+	if j := args.Get(0); j != nil {
+		deployment = j.(*api.Deployment)
+	}
+
+	var meta *api.QueryMeta
+	if r := args.Get(1); r != nil {
+		meta = r.(*api.QueryMeta)
+	}
+
+	return deployment, meta, args.Error(2)
+}
+
 func (m *MockJobs) Register(job *api.Job, options *api.WriteOptions) (*api.JobRegisterResponse, *api.WriteMeta, error) {
 
 	args := m.Called(job, options)
