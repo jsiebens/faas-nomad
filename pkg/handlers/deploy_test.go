@@ -19,12 +19,13 @@ import (
 
 func setupDeployHandler(body []byte) (*services.MockJobs, http.HandlerFunc, *http.Request, *httptest.ResponseRecorder) {
 	jobs := &services.MockJobs{}
+	secrets := &services.MockSecrets{}
 
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/system/functions", bytes.NewReader(body))
 
 	config, _ := types.DefaultConfig()
-	handler := MakeDeployHandler(config, jobs, hclog.Default())
+	handler := MakeDeployHandler(config, jobs, secrets, hclog.Default())
 
 	return jobs, handler, request, response
 }

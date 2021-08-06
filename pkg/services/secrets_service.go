@@ -15,6 +15,7 @@ import (
 type Secrets interface {
 	List() ([]ftypes.Secret, error)
 	Set(key, value string) error
+	Exists(key string) bool
 	Delete(key string) error
 }
 
@@ -72,6 +73,11 @@ func (vs *VaultSecrets) List() ([]ftypes.Secret, error) {
 	}
 
 	return secrets, nil
+}
+
+func (vs *VaultSecrets) Exists(key string) bool {
+	s, err := vs.client.Logical().Read(fmt.Sprintf("%s/%s", vs.prefix, key))
+	return s != nil && err == nil
 }
 
 func (vs *VaultSecrets) Set(key, value string) error {

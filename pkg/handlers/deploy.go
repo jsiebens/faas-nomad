@@ -22,7 +22,7 @@ var (
 	logSize  = 2
 )
 
-func MakeDeployHandler(config *types.ProviderConfig, jobs services.Jobs, logger hclog.Logger) func(w http.ResponseWriter, r *http.Request) {
+func MakeDeployHandler(config *types.ProviderConfig, jobs services.Jobs, secrets services.Secrets, logger hclog.Logger) func(w http.ResponseWriter, r *http.Request) {
 	log := logger.Named("deploy_handler")
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +36,14 @@ func MakeDeployHandler(config *types.ProviderConfig, jobs services.Jobs, logger 
 		}
 
 		namespace := config.Scheduling.Namespace
+
+		// validate secrets
+		for _, s := range req.Secrets {
+			if !secrets.Exists(s) {
+				writeError(w, http.StatusBadRequest, fmt.Errorf("secret with key '%s' is not available", s))
+				return
+			}
+		}
 
 		job := createJob(config, namespace, req)
 

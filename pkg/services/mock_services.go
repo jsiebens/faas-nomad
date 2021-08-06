@@ -28,6 +28,11 @@ func (ms *MockSecrets) Set(key, value string) error {
 	return args.Error(0)
 }
 
+func (ms *MockSecrets) Exists(key string) bool {
+	args := ms.Called(key)
+	return args.Bool(0)
+}
+
 func (ms *MockSecrets) Delete(key string) error {
 	args := ms.Called(key)
 	return args.Error(0)
