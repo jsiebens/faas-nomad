@@ -20,12 +20,6 @@ import (
 var (
 	logFiles = 5
 	logSize  = 2
-
-	// Update Strategy
-	updateAutoRevert      = true
-	updateMinHealthyTime  = 5 * time.Second
-	updateHealthyDeadline = 30 * time.Second
-	updateStagger         = 5 * time.Second
 )
 
 func MakeDeployHandler(config *types.ProviderConfig, jobs services.Jobs, logger hclog.Logger) func(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +62,7 @@ func createJob(config *types.ProviderConfig, namespace string, fd ftypes.Functio
 	job := api.NewServiceJob(name, name, region, priority)
 	job.Namespace = &namespace
 	job.Meta = createAnnotations(fd)
-	job.Update = createUpdateStrategy()
+	job.Update = createUpdateStrategy(fd)
 	job.Datacenters = datacenters
 	job.Constraints = constraints
 	job.TaskGroups = createTaskGroups(config, fd)
@@ -142,14 +136,7 @@ func createTaskGroups(config *types.ProviderConfig, fd ftypes.FunctionDeployment
 }
 
 func getInitialCount(fd ftypes.FunctionDeployment) int {
-	if fd.Labels != nil {
-		m := *fd.Labels
-		count, err := strconv.ParseInt(m["com.openfaas.scale.min"], 10, 32)
-		if err == nil {
-			return int(count)
-		}
-	}
-	return 1
+	return types.ParseIntValueFromMap(fd.Labels, "com.openfaas.scale.min", 1)
 }
 
 func createTask(config *types.ProviderConfig, fd ftypes.FunctionDeployment) *api.Task {
@@ -284,12 +271,28 @@ func createEnvVars(r ftypes.FunctionDeployment) map[string]string {
 	return envVars
 }
 
-func createUpdateStrategy() *api.UpdateStrategy {
+func createUpdateStrategy(fd ftypes.FunctionDeployment) *api.UpdateStrategy {
+	// Update Strategy
+	stagger := types.ParseIntOrDurationValueFromMap(fd.Labels, "com.openfaas.nomad.update.stagger", 5*time.Second)
+	maxParallel := types.ParseIntValueFromMap(fd.Labels, "com.openfaas.nomad.update.max_parallel", 3)
+	healthCheck := types.ParseStringValueFromMap(fd.Labels, "com.openfaas.nomad.update.health_check", "checks")
+	minHealthyTime := types.ParseIntOrDurationValueFromMap(fd.Labels, "com.openfaas.nomad.update.min_healthy_time", 5*time.Second)
+	healthyDeadline := types.ParseIntOrDurationValueFromMap(fd.Labels, "com.openfaas.nomad.update.healthy_deadline", 2*time.Minute)
+	progressDeadline := types.ParseIntOrDurationValueFromMap(fd.Labels, "com.openfaas.nomad.update.progress_deadline", 5*time.Minute)
+	canary := types.ParseIntValueFromMap(fd.Labels, "com.openfaas.nomad.update.canary", 0)
+	autoRevert := types.ParseBoolValueFromMap(fd.Labels, "com.openfaas.nomad.update.auto_revert", true)
+	autoPromote := types.ParseBoolValueFromMap(fd.Labels, "com.openfaas.nomad.update.auto_promote", false)
+
 	return &api.UpdateStrategy{
-		MinHealthyTime:  &updateMinHealthyTime,
-		AutoRevert:      &updateAutoRevert,
-		Stagger:         &updateStagger,
-		HealthyDeadline: &updateHealthyDeadline,
+		Stagger:          &stagger,
+		MaxParallel:      &maxParallel,
+		HealthCheck:      &healthCheck,
+		MinHealthyTime:   &minHealthyTime,
+		HealthyDeadline:  &healthyDeadline,
+		ProgressDeadline: &progressDeadline,
+		Canary:           &canary,
+		AutoRevert:       &autoRevert,
+		AutoPromote:      &autoPromote,
 	}
 }
 
