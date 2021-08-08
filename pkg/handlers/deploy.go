@@ -48,7 +48,11 @@ func MakeDeployHandler(config *types.ProviderConfig, jobs services.Jobs, secrets
 		job := createJob(config, namespace, req)
 
 		// Use the Nomad API client to register the job
-		_, _, err = jobs.Register(job, &api.WriteOptions{Namespace: namespace})
+		writeOptions := &api.WriteOptions{Namespace: namespace}
+		registerOptions := &api.RegisterOptions{
+			PreserveCounts: true,
+		}
+		_, _, err = jobs.RegisterOpts(job, registerOptions, writeOptions)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			log.Error("Error registering function", "function", *job.Name, "namespace", *job.Namespace, "error", err.Error())

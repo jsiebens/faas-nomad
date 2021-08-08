@@ -90,9 +90,9 @@ func (m *MockJobs) LatestDeployment(jobID string, q *api.QueryOptions) (*api.Dep
 	return deployment, meta, args.Error(2)
 }
 
-func (m *MockJobs) Register(job *api.Job, options *api.WriteOptions) (*api.JobRegisterResponse, *api.WriteMeta, error) {
+func (m *MockJobs) RegisterOpts(job *api.Job, opts *api.RegisterOptions, w *api.WriteOptions) (*api.JobRegisterResponse, *api.WriteMeta, error) {
 
-	args := m.Called(job, options)
+	args := m.Called(job, opts, w)
 
 	var resp *api.JobRegisterResponse
 	if r := args.Get(0); r != nil {

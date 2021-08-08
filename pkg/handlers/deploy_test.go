@@ -45,7 +45,7 @@ func TestDeployHandlerReportsErrorWhenJobRegistrationFails(t *testing.T) {
 
 	jobs, deployHandler, request, recorder := setupDeployHandler(body)
 
-	jobs.On("Register", mock.Anything, mock.Anything).Return(nil, nil, fmt.Errorf("failure"))
+	jobs.On("RegisterOpts", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, fmt.Errorf("failure"))
 
 	deployHandler(recorder, request)
 
@@ -58,8 +58,9 @@ func TestDeployHandlerReportsOKWhenJobIsRegistered(t *testing.T) {
 	body, _ := json.Marshal(req)
 
 	jobs, deployHandler, request, recorder := setupDeployHandler(body)
+	options := &api.RegisterOptions{PreserveCounts: true}
 
-	jobs.On("Register", mock.Anything, mock.Anything).Return(nil, nil, nil)
+	jobs.On("RegisterOpts", mock.Anything, options, mock.Anything).Return(nil, nil, nil)
 
 	deployHandler(recorder, request)
 
@@ -84,7 +85,7 @@ func TestDeployHandlerWithInitialScaleCount(t *testing.T) {
 
 	jobs, deployHandler, request, recorder := setupDeployHandler(body)
 
-	jobs.On("Register", mock.Anything, mock.Anything).Return(nil, nil, nil)
+	jobs.On("RegisterOpts", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil)
 
 	deployHandler(recorder, request)
 
@@ -105,7 +106,7 @@ func TestDeployHandlerWithMultipleDatacenters(t *testing.T) {
 
 	jobs, deployHandler, request, recorder := setupDeployHandler(body)
 
-	jobs.On("Register", mock.Anything, mock.Anything).Return(nil, nil, nil)
+	jobs.On("RegisterOpts", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil)
 
 	deployHandler(recorder, request)
 
@@ -135,7 +136,7 @@ func TestDeployHandlerWithConstraints(t *testing.T) {
 
 	jobs, deployHandler, request, recorder := setupDeployHandler(body)
 
-	jobs.On("Register", mock.Anything, mock.Anything).Return(nil, nil, nil)
+	jobs.On("RegisterOpts", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil)
 
 	deployHandler(recorder, request)
 

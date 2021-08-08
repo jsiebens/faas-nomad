@@ -43,7 +43,8 @@ func MakeReplicaUpdater(config *types.ProviderConfig, client services.Jobs, logg
 		replicas := int(req.Replicas)
 		job.TaskGroups[0].Count = &replicas
 
-		_, _, err = client.Register(job, nil)
+		opts := &api.RegisterOptions{PreserveCounts: false}
+		_, _, err = client.RegisterOpts(job, opts, nil)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			log.Error("Error updating function", "function", req.ServiceName, "namespace", namespace, "error", err.Error())
