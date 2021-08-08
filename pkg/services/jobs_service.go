@@ -11,7 +11,7 @@ type Jobs interface {
 	LatestDeployment(jobID string, q *api.QueryOptions) (*api.Deployment, *api.QueryMeta, error)
 	RegisterOpts(job *api.Job, opts *api.RegisterOptions, q *api.WriteOptions) (*api.JobRegisterResponse, *api.WriteMeta, error)
 	Deregister(jobID string, purge bool, q *api.WriteOptions) (string, *api.WriteMeta, error)
-	//Scale(jobID, group string, count *int, message string, error bool, meta map[string]interface{}, q *api.WriteOptions) (*api.JobRegisterResponse, *api.WriteMeta, error)
+	Scale(jobID, group string, count *int, message string, error bool, meta map[string]interface{}, q *api.WriteOptions) (*api.JobRegisterResponse, *api.WriteMeta, error)
 	Allocations(jobID string, allAllocs bool, q *api.QueryOptions) ([]*api.AllocationListStub, *api.QueryMeta, error)
 }
 

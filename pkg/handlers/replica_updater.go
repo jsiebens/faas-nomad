@@ -29,29 +29,23 @@ func MakeReplicaUpdater(config *types.ProviderConfig, client services.Jobs, logg
 			return
 		}
 
-		options := &api.QueryOptions{
+		options := &api.WriteOptions{
 			Namespace: namespace,
 		}
 
-		job, _, err := client.Info(fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, req.ServiceName), options)
-
-		if job == nil || err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
 		replicas := int(req.Replicas)
-		job.TaskGroups[0].Count = &replicas
+		msg := "submitted using the faas-nomad provider"
 
-		opts := &api.RegisterOptions{PreserveCounts: false}
-		_, _, err = client.RegisterOpts(job, opts, nil)
+		jobID := fmt.Sprintf("%s%s", config.Scheduling.JobPrefix, req.ServiceName)
+		_, _, err = client.Scale(jobID, req.ServiceName, &replicas, msg, false, nil, options)
+
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
-			log.Error("Error updating function", "function", req.ServiceName, "namespace", namespace, "error", err.Error())
+			log.Error("Error scaling function", "function", req.ServiceName, "namespace", namespace, "error", err.Error())
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		log.Debug("Function updated successfully", "function", req.ServiceName, "namespace", namespace)
+		log.Debug("Function scaled successfully", "function", req.ServiceName, "namespace", namespace)
 	}
 }

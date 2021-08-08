@@ -115,6 +115,23 @@ func (m *MockJobs) Deregister(jobID string, purge bool, q *api.WriteOptions) (st
 	return "", nil, args.Error(2)
 }
 
+func (m *MockJobs) Scale(jobID, group string, count *int, message string, error bool, meta map[string]interface{}, q *api.WriteOptions) (*api.JobRegisterResponse, *api.WriteMeta, error) {
+
+	args := m.Called(jobID, group, count, message, error, meta, q)
+
+	var resp *api.JobRegisterResponse
+	if r := args.Get(0); r != nil {
+		resp = r.(*api.JobRegisterResponse)
+	}
+
+	var writeMeta *api.WriteMeta
+	if r := args.Get(1); r != nil {
+		writeMeta = r.(*api.WriteMeta)
+	}
+
+	return resp, writeMeta, args.Error(2)
+}
+
 func (m *MockJobs) Allocations(jobID string, allAllocs bool, q *api.QueryOptions) ([]*api.AllocationListStub, *api.QueryMeta, error) {
 	args := m.Called(jobID, allAllocs, q)
 
