@@ -28,11 +28,11 @@ func createMockJob(id string, status string) *api.Job {
 	labels = append(labels, map[string]interface{}{"label": "test"})
 	annotations := map[string]string{"topic": "test"}
 	return &api.Job{
-		ID:        &name,
-		Name:      &name,
-		Namespace: &namespace,
-		Status:    &status,
-		Meta:      annotations,
+		ID:         &name,
+		Name:       &name,
+		Namespace:  &namespace,
+		Status:     &status,
+		Meta:       annotations,
 		SubmitTime: &now,
 		TaskGroups: []*api.TaskGroup{{
 			Count: &count,
