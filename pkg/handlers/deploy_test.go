@@ -25,7 +25,8 @@ func setupDeployHandler(body []byte) (*services.MockJobs, http.HandlerFunc, *htt
 	request := httptest.NewRequest("POST", "/system/functions", bytes.NewReader(body))
 
 	config, _ := types.DefaultConfig()
-	handler := MakeDeployHandler(config, jobs, secrets, hclog.Default())
+	factory := services.NewJobFactory(config)
+	handler := MakeDeployHandler(config, factory, jobs, secrets, hclog.Default())
 
 	return jobs, handler, request, response
 }

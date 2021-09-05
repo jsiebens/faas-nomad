@@ -47,6 +47,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	factory := services.NewJobFactory(config)
+
 	resolver, err := resolver.NewConsulResolver(config, logger)
 	if err != nil {
 		log.Fatal(err)
@@ -55,13 +57,13 @@ func main() {
 	bootstrapHandlers := ftypes.FaaSHandlers{
 		FunctionProxy:        proxy.NewHandlerFunc(config.FaaS, resolver, logger),
 		FunctionReader:       handlers.MakeFunctionReader(config, jobs, logger),
-		DeployHandler:        handlers.MakeDeployHandler(config, jobs, secrets, logger),
+		DeployHandler:        handlers.MakeDeployHandler(config, factory, jobs, secrets, logger),
 		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs, logger),
 		ReplicaReader:        handlers.MakeReplicaReader(config, jobs, logger),
 		ReplicaUpdater:       handlers.MakeReplicaUpdater(config, jobs, logger),
 		SecretHandler:        handlers.MakeSecretHandler(secrets, logger),
 		LogHandler:           unimplemented,
-		UpdateHandler:        handlers.MakeDeployHandler(config, jobs, secrets, logger),
+		UpdateHandler:        handlers.MakeDeployHandler(config, factory, jobs, secrets, logger),
 		HealthHandler:        handlers.MakeHealthHandler(),
 		InfoHandler:          handlers.MakeInfoHandler(version.BuildVersion(), version.GitCommit),
 		ListNamespaceHandler: handlers.MakeListNamespaceHandler(config),
