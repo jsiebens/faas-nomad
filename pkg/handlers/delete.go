@@ -13,7 +13,7 @@ import (
 	ftypes "github.com/openfaas/faas-provider/types"
 )
 
-func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs, resolver services.ServiceResolver, logger hclog.Logger) func(w http.ResponseWriter, r *http.Request) {
+func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs, logger hclog.Logger) func(w http.ResponseWriter, r *http.Request) {
 	log := logger.Named("delete_handler")
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -36,8 +36,6 @@ func MakeDeleteHandler(config *types.ProviderConfig, jobs services.Jobs, resolve
 			log.Error("Error deregistering function", "function", jobName, "namespace", namespace, "error", err.Error())
 			return
 		}
-
-		resolver.RemoveCacheItem(jobName)
 
 		log.Debug("Function deregistered successfully", "function", jobName, "namespace", namespace)
 		w.WriteHeader(http.StatusOK)

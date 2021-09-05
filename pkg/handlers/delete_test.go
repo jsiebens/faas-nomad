@@ -16,9 +16,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupDeleteHandler(body []byte) (*services.MockJobs, *services.MockResolver, http.HandlerFunc, *http.Request, *httptest.ResponseRecorder) {
+func setupDeleteHandler(body []byte) (*services.MockJobs, http.HandlerFunc, *http.Request, *httptest.ResponseRecorder) {
 	jobs := &services.MockJobs{}
-	resolver := &services.MockResolver{}
 
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest("DELETE", "/system/functions", bytes.NewReader(body))
@@ -27,13 +26,13 @@ func setupDeleteHandler(body []byte) (*services.MockJobs, *services.MockResolver
 		JobPrefix: "faas-fn-",
 	}}
 
-	handler := MakeDeleteHandler(config, jobs, resolver, hclog.Default())
+	handler := MakeDeleteHandler(config, jobs, hclog.Default())
 
-	return jobs, resolver, handler, request, response
+	return jobs, handler, request, response
 }
 
 func TestDeleteHandlerReportsErrorWhenRequestIsInvalid(t *testing.T) {
-	_, _, deleteHandler, request, recorder := setupDeleteHandler([]byte(""))
+	_, deleteHandler, request, recorder := setupDeleteHandler([]byte(""))
 
 	deleteHandler(recorder, request)
 
@@ -45,7 +44,7 @@ func TestDeleteHandlerReportsErrorWhenDeregisterFails(t *testing.T) {
 	req.FunctionName = "func123"
 	data, _ := json.Marshal(req)
 
-	jobs, _, deleteHandler, request, recorder := setupDeleteHandler(data)
+	jobs, deleteHandler, request, recorder := setupDeleteHandler(data)
 	jobs.On("Deregister", "faas-fn-func123", mock.Anything, mock.Anything).Return(nil, nil, fmt.Errorf("failure"))
 
 	deleteHandler(recorder, request)
@@ -59,13 +58,11 @@ func TestDeleteHandlerDeregisterJob(t *testing.T) {
 	req.FunctionName = "func123"
 	data, _ := json.Marshal(req)
 
-	jobs, resolver, deleteHandler, request, recorder := setupDeleteHandler(data)
+	jobs, deleteHandler, request, recorder := setupDeleteHandler(data)
 	jobs.On("Deregister", "faas-fn-func123", mock.Anything, mock.Anything).Return(nil, nil, nil)
-	resolver.On("RemoveCacheItem", "faas-fn-func123").Return()
 
 	deleteHandler(recorder, request)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	jobs.AssertCalled(t, "Deregister", "faas-fn-func123", mock.Anything, mock.Anything)
-	resolver.AssertCalled(t, "RemoveCacheItem", "faas-fn-func123")
 }

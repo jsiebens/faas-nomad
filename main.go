@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/jsiebens/faas-nomad/pkg/proxy"
+	"github.com/jsiebens/faas-nomad/pkg/resolver"
 	"log"
 	"net/http"
 	"os"
@@ -14,7 +16,6 @@ import (
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	"github.com/jsiebens/faas-nomad/version"
 	fbootstrap "github.com/openfaas/faas-provider"
-	"github.com/openfaas/faas-provider/proxy"
 	ftypes "github.com/openfaas/faas-provider/types"
 )
 
@@ -46,16 +47,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	resolver, err := services.NewConsulResolver(config, logger)
+	resolver, err := resolver.NewConsulResolver(config, logger)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	bootstrapHandlers := ftypes.FaaSHandlers{
-		FunctionProxy:        proxy.NewHandlerFunc(config.FaaS, resolver),
+		FunctionProxy:        proxy.NewHandlerFunc(config.FaaS, resolver, logger),
 		FunctionReader:       handlers.MakeFunctionReader(config, jobs, logger),
 		DeployHandler:        handlers.MakeDeployHandler(config, jobs, secrets, logger),
-		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs, resolver, logger),
+		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs, logger),
 		ReplicaReader:        handlers.MakeReplicaReader(config, jobs, logger),
 		ReplicaUpdater:       handlers.MakeReplicaUpdater(config, jobs, logger),
 		SecretHandler:        handlers.MakeSecretHandler(secrets, logger),
