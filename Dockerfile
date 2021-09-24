@@ -1,4 +1,4 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.16 as build
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.17 as build
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -21,7 +21,7 @@ RUN VERSION=$(git describe --all --exact-match `git rev-parse HEAD` | grep tags 
         -X github.com/jsiebens/faas-nomad/version.Version=${VERSION}" \
         -a -installsuffix cgo -o faas-nomad .
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} alpine:3.14.0 as ship
+FROM --platform=${TARGETPLATFORM:-linux/amd64} alpine:3.14.2 as ship
 
 RUN apk --no-cache add \
     ca-certificates
