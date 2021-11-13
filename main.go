@@ -59,7 +59,7 @@ func main() {
 		FunctionReader:       handlers.MakeFunctionReader(config, jobs, logger),
 		DeployHandler:        handlers.MakeDeployHandler(config, factory, jobs, secrets, logger),
 		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs, logger),
-		ReplicaReader:        handlers.MakeReplicaReader(config, jobs, logger),
+		ReplicaReader:        handlers.MakeReplicaReader(config, jobs, resolver, logger),
 		ReplicaUpdater:       handlers.MakeReplicaUpdater(config, jobs, logger),
 		SecretHandler:        handlers.MakeSecretHandler(secrets, logger),
 		LogHandler:           unimplemented,

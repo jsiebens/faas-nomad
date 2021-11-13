@@ -48,14 +48,12 @@ func MakeFunctionReader(config *types.ProviderConfig, jobs services.Jobs, logger
 func getFunctions(config *types.ProviderConfig, client services.Jobs, jobs []*api.JobListStub, options *api.QueryOptions) ([]ftypes.FunctionStatus, error) {
 	functions := make([]ftypes.FunctionStatus, 0)
 	for _, j := range jobs {
-		if j.Status == "running" || j.Status == "pending" {
-			job, _, err := client.Info(j.ID, options)
-			if err != nil {
-				return functions, err
-			}
-
-			functions = append(functions, createFunctionStatus(job, config.Scheduling.JobPrefix))
+		job, _, err := client.Info(j.ID, options)
+		if err != nil {
+			return functions, err
 		}
+
+		functions = append(functions, createFunctionStatus(job, config.Scheduling.JobPrefix))
 	}
 	return functions, nil
 }

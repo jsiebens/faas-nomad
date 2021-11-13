@@ -15,6 +15,7 @@ import (
 
 type ServiceResolver interface {
 	Resolve(functionName string) (url.URL, error)
+	ResolveAll(functionName string) ([]url.URL, error)
 }
 
 type ConsulServiceResolver struct {
@@ -82,23 +83,31 @@ func (cr *ConsulServiceResolver) reset() {
 	}
 }
 
-func (cr *ConsulServiceResolver) Resolve(function string) (url.URL, error) {
+func (cr *ConsulServiceResolver) ResolveAll(function string) ([]url.URL, error) {
 	return cr.resolveInternal(fmt.Sprintf("%s%s", cr.prefix, strings.TrimSuffix(function, "."+cr.namespace)))
 }
 
-func (cr *ConsulServiceResolver) resolveInternal(service string) (url.URL, error) {
-	query, err := dependency.NewHealthServiceQuery(service)
+func (cr *ConsulServiceResolver) Resolve(function string) (url.URL, error) {
+	candidates, err := cr.ResolveAll(function)
 	if err != nil {
 		return url.URL{}, err
 	}
+	return balance(candidates)
+}
+
+func (cr *ConsulServiceResolver) resolveInternal(service string) ([]url.URL, error) {
+	query, err := dependency.NewHealthServiceQuery(service)
+	if err != nil {
+		return nil, err
+	}
 
 	if val, ok := cr.cache.Load(query.String()); ok {
-		return balance(val.(*serviceItem).addresses), nil
+		return val.(*serviceItem).addresses, nil
 	}
 
 	fetch, _, err := query.Fetch(cr.clientSet, nil)
 	if err != nil {
-		return url.URL{}, err
+		return nil, err
 	}
 
 	services := fetch.([]*dependency.HealthService)
@@ -106,7 +115,7 @@ func (cr *ConsulServiceResolver) resolveInternal(service string) (url.URL, error
 
 	_, _ = cr.watcher.Add(query)
 
-	return balance(item.addresses), nil
+	return item.addresses, nil
 }
 
 func (cr *ConsulServiceResolver) updateCatalog(dep dependency.Dependency, services []*dependency.HealthService) *serviceItem {
@@ -134,12 +143,15 @@ func (cr *ConsulServiceResolver) watch() {
 	}
 }
 
-func balance(candidates []url.URL) url.URL {
+func balance(candidates []url.URL) (url.URL, error) {
+	if candidates == nil || len(candidates) == 0 {
+		return url.URL{}, fmt.Errorf("no candidate available")
+	}
 	idx := 0
 	if len(candidates) > 1 {
 		idx = rand.Intn(len(candidates))
 	}
-	return candidates[idx]
+	return candidates[idx], nil
 }
 
 func toUrl(address string, port int) url.URL {

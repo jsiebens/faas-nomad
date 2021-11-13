@@ -110,5 +110,5 @@ func TestFunctionReaderReportsRunningFunctions(t *testing.T) {
 	funcs := make([]ftypes.FunctionStatus, 0)
 	json.Unmarshal(body, &funcs)
 
-	assert.Equal(t, 2, len(funcs))
+	assert.Equal(t, 3, len(funcs))
 }

@@ -44,7 +44,6 @@ type SchedulingConfig struct {
 	Namespace      string
 	JobPrefix      string
 	NetworkingMode string
-	Purge          bool
 	HttpCheck      bool
 }
 
@@ -127,7 +126,6 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 			Namespace:      ftypes.ParseString(env.Getenv("job_namespace"), "default"),
 			JobPrefix:      ftypes.ParseString(env.Getenv("job_name_prefix"), "faas-fn-"),
 			NetworkingMode: ftypes.ParseString(env.Getenv("job_network_mode"), "host"),
-			Purge:          ftypes.ParseBoolValue(env.Getenv("job_purge"), false),
 			HttpCheck:      ftypes.ParseBoolValue(env.Getenv("job_http_check"), true),
 		},
 
