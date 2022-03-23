@@ -86,7 +86,7 @@ job "faas" {
 
       env {
         basic_auth="false"
-        functions_provider_url="http://192.168.50.1:8080/"
+        functions_provider_url="http://192.168.56.1:8080/"
         direct_functions="false"
         function_namespace="default"
         read_timeout="60s"

@@ -8,14 +8,14 @@ hashi-up consul install --local \
   --server \
   --connect \
   --client-addr 0.0.0.0 \
-  --advertise-addr "{{ GetInterfaceIP \"eth1\" }}" \
+  --advertise-addr "{{ GetInterfaceIP \"enp0s8\" }}" \
   --skip-start
 
 hashi-up nomad install --local \
   --version 1.1.3 \
   --server \
   --client \
-  --advertise "{{ GetInterfaceIP \"eth1\" }}" \
+  --advertise "{{ GetInterfaceIP \"enp0s8\" }}" \
   --skip-start
 
 sudo tee /etc/nomad.d/config/vault.hcl >/dev/null <<EOF
@@ -29,7 +29,7 @@ EOF
 
 tee /etc/nomad.d/config/client.hcl >/dev/null <<EOF
 client {
-  network_interface = "eth1"
+  network_interface = "enp0s8"
 }
 EOF
 

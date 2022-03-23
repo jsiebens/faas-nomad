@@ -3,11 +3,11 @@ $msg = <<MSG
 Local OpenFaas on Nomad is ready
 
 URLS:
- * Consul     - http://192.168.50.2:8500
- * Nomad      - http://192.168.50.2:4646
- * Vault      - http://192.168.50.2:8200
- * OpenFaaS   - http://192.168.50.2:8080
- * Prometheus - http://192.168.50.2:9090
+ * Consul     - http://192.168.56.2:8500
+ * Nomad      - http://192.168.56.2:4646
+ * Vault      - http://192.168.56.2:8200
+ * OpenFaaS   - http://192.168.56.2:8080
+ * Prometheus - http://192.168.56.2:9090
 
 Start your local faas-provider:
 
@@ -18,8 +18,8 @@ MSG
 
 Vagrant.configure("2") do |config|
 
-  config.vm.box = "hashicorp/bionic64"
-  config.vm.network "private_network", ip: "192.168.50.2"
+  config.vm.box = "ubuntu/focal64"
+  config.vm.network "private_network", ip: "192.168.56.2"
   config.vm.post_up_message = $msg
 
   config.vm.provider "virtualbox" do |vb, override|
