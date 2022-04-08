@@ -38,7 +38,7 @@ func MakeReplicaReader(config *types.ProviderConfig, client services.Jobs, resol
 			status.Replicas = 0
 			status.AvailableReplicas = 0
 		} else {
-			availableReplicas, err := resolver.ResolveAll(functionName)
+			availableReplicas, _, err := resolver.ResolveAll(functionName)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, err)
 				log.Error("Error reading function status", "function", functionName, "namespace", namespace, "error", err.Error())

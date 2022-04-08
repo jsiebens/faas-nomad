@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jsiebens/faas-nomad/pkg/types"
 	"math/rand"
@@ -14,8 +15,8 @@ import (
 )
 
 type ServiceResolver interface {
-	Resolve(functionName string) (url.URL, error)
-	ResolveAll(functionName string) ([]url.URL, error)
+	Resolve(functionName string) (string, connect.CertURI, error)
+	ResolveAll(functionName string) ([]string, connect.CertURI, error)
 }
 
 type ConsulServiceResolver struct {
@@ -24,12 +25,14 @@ type ConsulServiceResolver struct {
 	cache     sync.Map
 	prefix    string
 	namespace string
+	connect   bool
 	logger    hclog.Logger
 }
 
 type serviceItem struct {
 	serviceQuery dependency.Dependency
-	addresses    []url.URL
+	certURI      connect.CertURI
+	addresses    []string
 }
 
 func NewConsulResolver(config *types.ProviderConfig, logger hclog.Logger) (ServiceResolver, error) {
@@ -58,6 +61,7 @@ func NewConsulResolver(config *types.ProviderConfig, logger hclog.Logger) (Servi
 		watcher:   watcher,
 		prefix:    config.Scheduling.JobPrefix,
 		namespace: config.Scheduling.Namespace,
+		connect:   config.Consul.ConnectAware,
 		logger:    logger,
 	}
 
@@ -83,31 +87,40 @@ func (cr *ConsulServiceResolver) reset() {
 	}
 }
 
-func (cr *ConsulServiceResolver) ResolveAll(function string) ([]url.URL, error) {
+func (cr *ConsulServiceResolver) ResolveAll(function string) ([]string, connect.CertURI, error) {
 	return cr.resolveInternal(fmt.Sprintf("%s%s", cr.prefix, strings.TrimSuffix(function, "."+cr.namespace)))
 }
 
-func (cr *ConsulServiceResolver) Resolve(function string) (url.URL, error) {
-	candidates, err := cr.ResolveAll(function)
+func (cr *ConsulServiceResolver) Resolve(function string) (string, connect.CertURI, error) {
+	candidates, certURI, err := cr.ResolveAll(function)
 	if err != nil {
-		return url.URL{}, err
+		return "", nil, err
 	}
-	return balance(candidates)
+	return balance(candidates, certURI)
 }
 
-func (cr *ConsulServiceResolver) resolveInternal(service string) ([]url.URL, error) {
-	query, err := dependency.NewHealthServiceQuery(service)
+func (cr *ConsulServiceResolver) resolveInternal(service string) ([]string, connect.CertURI, error) {
+	query, err := cr.healthServiceQuery(service)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	// Generate the expected CertURI
+	certURI := &connect.SpiffeIDService{
+		// No host since we don't validate trust domain here (we rely on x509 to
+		// prove trust).
+		Namespace:  cr.namespace,
+		Datacenter: "dc1", // TODO
+		Service:    service,
 	}
 
 	if val, ok := cr.cache.Load(query.String()); ok {
-		return val.(*serviceItem).addresses, nil
+		return val.(*serviceItem).addresses, certURI, nil
 	}
 
 	fetch, _, err := query.Fetch(cr.clientSet, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	services := fetch.([]*dependency.HealthService)
@@ -115,15 +128,23 @@ func (cr *ConsulServiceResolver) resolveInternal(service string) ([]url.URL, err
 
 	_, _ = cr.watcher.Add(query)
 
-	return item.addresses, nil
+	return item.addresses, certURI, nil
+}
+
+func (cr *ConsulServiceResolver) healthServiceQuery(service string) (*dependency.HealthServiceQuery, error) {
+	if cr.connect {
+		return dependency.NewHealthConnectQuery(service)
+	} else {
+		return dependency.NewHealthServiceQuery(service)
+	}
 }
 
 func (cr *ConsulServiceResolver) updateCatalog(dep dependency.Dependency, services []*dependency.HealthService) *serviceItem {
-	addresses := make([]url.URL, 0)
+	addresses := make([]string, 0)
 
 	for _, s := range services {
 		if len(s.Checks) > 1 {
-			addresses = append(addresses, toUrl(s.Address, s.Port))
+			addresses = append(addresses, fmt.Sprintf("%v:%v", s.Address, s.Port))
 		}
 	}
 
@@ -143,15 +164,15 @@ func (cr *ConsulServiceResolver) watch() {
 	}
 }
 
-func balance(candidates []url.URL) (url.URL, error) {
+func balance(candidates []string, certURI connect.CertURI) (string, connect.CertURI, error) {
 	if candidates == nil || len(candidates) == 0 {
-		return url.URL{}, fmt.Errorf("no candidate available")
+		return "", nil, fmt.Errorf("no candidate available")
 	}
 	idx := 0
 	if len(candidates) > 1 {
 		idx = rand.Intn(len(candidates))
 	}
-	return candidates[idx], nil
+	return candidates[idx], certURI, nil
 }
 
 func toUrl(address string, port int) url.URL {

@@ -1,7 +1,9 @@
 package services
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/consul/agent/connect"
 	consulapi "github.com/hashicorp/consul/api"
 	consulconnect "github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/go-hclog"
@@ -23,6 +25,10 @@ type ProxyHandler interface {
 }
 
 func NewProxyHandler(config types.ProviderConfig, logger hclog.Logger) (ProxyHandler, error) {
+	consulResolver, err := resolver.NewConsulResolver(&config, logger)
+	if err != nil {
+		return nil, err
+	}
 
 	if config.Consul.ConnectAware {
 		c := consulapi.DefaultConfig()
@@ -50,28 +56,31 @@ func NewProxyHandler(config types.ProviderConfig, logger hclog.Logger) (ProxyHan
 			return nil, err
 		}
 
-		connectResolver := newConsulConnectResolver(&config)
-		connectTransport := newConsulConnectTransport(&config, service)
+		connectTransport := newConsulConnectTransport(&config, service, consulResolver)
 
 		return &connectProxyHandler{
-			resolver:   connectResolver,
+			resolver:   consulResolver,
 			intentions: client.Connect(),
 			service:    service,
-			handler:    proxy.NewHandlerFuncWithTransport(config.FaaS.GetReadTimeout(), connectTransport, connectResolver, logger),
+			handler:    proxy.NewHandlerFuncWithTransport(config.FaaS.GetReadTimeout(), connectTransport, &baseUrlResolver{protocol: "https"}, logger),
 		}, nil
 	} else {
-		consulResolver, err := resolver.NewConsulResolver(&config, logger)
-		if err != nil {
-			return nil, err
-		}
-
-		transport := newConsulCatalogTransport(&config)
+		transport := newConsulCatalogTransport(&config, consulResolver)
 
 		return &consulCatalogProxyHandler{
 			resolver: consulResolver,
-			handler:  proxy.NewHandlerFuncWithTransport(config.FaaS.GetReadTimeout(), transport, consulResolver, logger),
+			handler:  proxy.NewHandlerFuncWithTransport(config.FaaS.GetReadTimeout(), transport, &baseUrlResolver{protocol: "http"}, logger),
 		}, err
 	}
+}
+
+type baseUrlResolver struct {
+	protocol string
+}
+
+func (b *baseUrlResolver) Resolve(functionName string) (url.URL, error) {
+	parse, err := url.Parse(fmt.Sprintf("%s://%s", b.protocol, functionName))
+	return *parse, err
 }
 
 type consulCatalogProxyHandler struct {
@@ -109,10 +118,15 @@ func (c *connectProxyHandler) Close() {
 	_ = c.service.Close()
 }
 
-func newConsulConnectTransport(config *types.ProviderConfig, svc *consulconnect.Service) *http.Transport {
+func newConsulConnectTransport(config *types.ProviderConfig, svc *consulconnect.Service, serviceResolver resolver.ServiceResolver) *http.Transport {
+	dc := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host := stripPort(addr)
+		return svc.Dial(ctx, &internalResolver{functionName: host, resolver: serviceResolver})
+	}
+
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
-		DialTLS:               svc.HTTPDialTLS,
+		DialTLSContext:        dc,
 		MaxIdleConns:          config.FaaS.GetMaxIdleConns(),
 		MaxIdleConnsPerHost:   config.FaaS.GetMaxIdleConnsPerHost(),
 		IdleConnTimeout:       120 * time.Millisecond,
@@ -123,47 +137,49 @@ func newConsulConnectTransport(config *types.ProviderConfig, svc *consulconnect.
 	return transport
 }
 
-func newConsulConnectResolver(config *types.ProviderConfig) *consulConnectResolver {
-	return &consulConnectResolver{
-		prefix:    config.Scheduling.JobPrefix,
-		namespace: config.Scheduling.Namespace,
+type internalResolver struct {
+	functionName string
+	resolver     resolver.ServiceResolver
+}
+
+func (r *internalResolver) Resolve(ctx context.Context) (addr string, certURI connect.CertURI, err error) {
+	return r.resolver.Resolve(r.functionName)
+}
+
+func newConsulCatalogTransport(config *types.ProviderConfig, serviceResolver resolver.ServiceResolver) *http.Transport {
+	dialer := &net.Dialer{
+		Timeout:   config.FaaS.GetReadTimeout(),
+		KeepAlive: 1 * time.Second,
+		DualStack: true,
 	}
-}
 
-type consulConnectResolver struct {
-	prefix    string
-	namespace string
-}
-
-func (ccr *consulConnectResolver) Resolve(functionName string) (url.URL, error) {
-	urlAsString := fmt.Sprintf("https://%s.service.consul", fmt.Sprintf("%s%s", ccr.prefix, strings.TrimSuffix(functionName, "."+ccr.namespace)))
-	parsedUrl, err := url.Parse(urlAsString)
-	if err != nil {
-		return url.URL{}, err
+	dc := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host := stripPort(addr)
+		resolvedAddr, _, err := serviceResolver.Resolve(host)
+		if err != nil {
+			return nil, err
+		}
+		return dialer.DialContext(ctx, network, resolvedAddr)
 	}
-	return *parsedUrl, nil
-}
 
-func (ccr *consulConnectResolver) ResolveAll(functionName string) ([]url.URL, error) {
-	addr, err := ccr.Resolve(functionName)
-	if err != nil {
-		return nil, err
-	}
-	return []url.URL{addr}, nil
-}
-
-func newConsulCatalogTransport(config *types.ProviderConfig) *http.Transport {
 	return &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   config.FaaS.GetReadTimeout(),
-			KeepAlive: 1 * time.Second,
-			DualStack: true,
-		}).DialContext,
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dc,
 		MaxIdleConns:          config.FaaS.GetMaxIdleConns(),
 		MaxIdleConnsPerHost:   config.FaaS.GetMaxIdleConnsPerHost(),
 		IdleConnTimeout:       120 * time.Millisecond,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1500 * time.Millisecond,
 	}
+}
+
+func stripPort(hostport string) string {
+	colon := strings.IndexByte(hostport, ':')
+	if colon == -1 {
+		return hostport
+	}
+	if i := strings.IndexByte(hostport, ']'); i != -1 {
+		return strings.TrimPrefix(hostport[:i], "[")
+	}
+	return hostport[:colon]
 }
