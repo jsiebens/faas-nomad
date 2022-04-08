@@ -136,21 +136,26 @@ func (f *jobFactory) createTaskGroups(fd ftypes.FunctionDeployment) []*api.TaskG
 	count := f.getInitialCount(fd)
 
 	network := &api.NetworkResource{
-		Mode:         f.config.Scheduling.NetworkingMode,
-		DynamicPorts: []api.Port{{Label: "http", To: 8080}},
+		Mode: f.config.Scheduling.NetworkingMode,
+	}
+
+	if f.config.Consul.ConnectAware {
+		network.Mode = "bridge"
+	} else {
+		network.DynamicPorts = []api.Port{{Label: "http", To: 8080}}
 	}
 
 	gracePeriod := 5 * time.Second
 
 	check := api.ServiceCheck{
+		Name:                   fd.Service,
 		Type:                   "http",
-		PortLabel:              "http",
 		Path:                   "/_/health",
 		InitialStatus:          "critical",
 		SuccessBeforePassing:   1,
 		FailuresBeforeCritical: 3,
 		Interval:               5 * time.Second,
-		Timeout:                1 * time.Second,
+		Timeout:                2 * time.Second,
 		CheckRestart: &api.CheckRestart{
 			Limit:          3,
 			Grace:          &gracePeriod,
@@ -158,11 +163,24 @@ func (f *jobFactory) createTaskGroups(fd ftypes.FunctionDeployment) []*api.TaskG
 		},
 	}
 
+	if f.config.Consul.ConnectAware {
+		check.Expose = true
+	} else {
+		check.PortLabel = "http"
+	}
+
 	service := &api.Service{
 		Name:      fmt.Sprintf("%s%s", f.config.Scheduling.JobPrefix, fd.Service),
 		PortLabel: "http",
 		Tags:      []string{"http", "faas"},
 		Checks:    []api.ServiceCheck{check},
+	}
+
+	if f.config.Consul.ConnectAware {
+		service.PortLabel = "8080"
+		service.Connect = &api.ConsulConnect{
+			SidecarService: &api.ConsulSidecarService{},
+		}
 	}
 
 	group := api.TaskGroup{
@@ -182,14 +200,20 @@ func (f *jobFactory) getInitialCount(fd ftypes.FunctionDeployment) int {
 
 func (f *jobFactory) createTask(fd ftypes.FunctionDeployment) *api.Task {
 	var task api.Task
+
+	configMap := map[string]interface{}{
+		"image":  fd.Image,
+		"labels": createLabels(fd),
+	}
+
+	if !f.config.Consul.ConnectAware {
+		configMap["ports"] = []string{"http"}
+	}
+
 	task = api.Task{
 		Name:   fd.Service,
 		Driver: "docker",
-		Config: map[string]interface{}{
-			"image":  fd.Image,
-			"ports":  []string{"http"},
-			"labels": createLabels(fd),
-		},
+		Config: configMap,
 		LogConfig: &api.LogConfig{
 			MaxFiles:      &logFiles,
 			MaxFileSizeMB: &logSize,

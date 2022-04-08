@@ -16,6 +16,7 @@ type ConsulConfig struct {
 	ClientCert    string
 	ClientKey     string
 	TLSSkipVerify bool
+	ConnectAware  bool
 }
 
 type NomadConfig struct {
@@ -109,6 +110,7 @@ func doLoadConfig(env ftypes.HasEnv) (*ProviderConfig, error) {
 			ClientCert:    ftypes.ParseString(env.Getenv("consul_tls_cert"), ""),
 			ClientKey:     ftypes.ParseString(env.Getenv("consul_tls_key"), ""),
 			TLSSkipVerify: ftypes.ParseBoolValue(env.Getenv("consul_tls_skip_verify"), false),
+			ConnectAware:  ftypes.ParseBoolValue(env.Getenv("consul_connect_aware"), false),
 		},
 
 		Nomad: NomadConfig{

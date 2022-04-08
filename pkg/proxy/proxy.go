@@ -47,6 +47,36 @@ type BaseURLResolver interface {
 	Resolve(functionName string) (url.URL, error)
 }
 
+func NewHandlerFuncWithTransport(timeout time.Duration, transport *http.Transport, resolver BaseURLResolver, logger hclog.Logger) http.HandlerFunc {
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Body != nil {
+			defer r.Body.Close()
+		}
+
+		switch r.Method {
+		case http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodGet,
+			http.MethodOptions,
+			http.MethodHead:
+			proxyRequest(w, r, client, resolver, logger.Named("proxy"))
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}
+}
+
 // NewHandlerFunc creates a standard http.HandlerFunc to proxy function requests.
 // The returned http.HandlerFunc will ensure:
 //

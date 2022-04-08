@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/jsiebens/faas-nomad/pkg/proxy"
-	"github.com/jsiebens/faas-nomad/pkg/resolver"
 	"log"
 	"net/http"
 	"os"
@@ -37,6 +35,8 @@ func main() {
 	log.SetPrefix("")
 	log.SetFlags(0)
 
+	jobFactory := services.NewJobFactory(config)
+
 	secrets, err := services.NewVaultSecrets(config.Vault)
 	if err != nil {
 		log.Fatal(err)
@@ -47,23 +47,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	factory := services.NewJobFactory(config)
-
-	resolver, err := resolver.NewConsulResolver(config, logger)
+	proxy, err := services.NewProxyHandler(*config, logger)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	bootstrapHandlers := ftypes.FaaSHandlers{
-		FunctionProxy:        proxy.NewHandlerFunc(config.FaaS, resolver, logger),
+		FunctionProxy:        proxy.Handler(),
 		FunctionReader:       handlers.MakeFunctionReader(config, jobs, logger),
-		DeployHandler:        handlers.MakeDeployHandler(config, factory, jobs, secrets, logger),
+		DeployHandler:        handlers.MakeDeployHandler(config, jobFactory, jobs, secrets, logger),
 		DeleteHandler:        handlers.MakeDeleteHandler(config, jobs, logger),
-		ReplicaReader:        handlers.MakeReplicaReader(config, jobs, resolver, logger),
+		ReplicaReader:        handlers.MakeReplicaReader(config, jobs, proxy.Resolver(), logger),
 		ReplicaUpdater:       handlers.MakeReplicaUpdater(config, jobs, logger),
 		SecretHandler:        handlers.MakeSecretHandler(secrets, logger),
 		LogHandler:           unimplemented,
-		UpdateHandler:        handlers.MakeDeployHandler(config, factory, jobs, secrets, logger),
+		UpdateHandler:        handlers.MakeDeployHandler(config, jobFactory, jobs, secrets, logger),
 		HealthHandler:        handlers.MakeHealthHandler(),
 		InfoHandler:          handlers.MakeInfoHandler(version.BuildVersion(), version.GitCommit),
 		ListNamespaceHandler: handlers.MakeListNamespaceHandler(config),
